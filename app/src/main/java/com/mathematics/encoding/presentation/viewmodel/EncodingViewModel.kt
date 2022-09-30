@@ -3,6 +3,7 @@ package com.mathematics.encoding.presentation.viewmodel
 import androidx.lifecycle.*
 import com.mathematics.encoding.data.repository.EncodingRepository
 import com.mathematics.encoding.presentation.model.Symbol
+import com.mathematics.encoding.presentation.model.SymbolWithCode
 
 class EncodingViewModel(private val encodingRepository: EncodingRepository) : ViewModel() {
     companion object {
@@ -47,6 +48,6 @@ class EncodingViewModel(private val encodingRepository: EncodingRepository) : Vi
 
 
 
-    suspend fun generateCodesByFano(symbols: List<Symbol>): List<String> =
+    suspend fun generateCodesByFano(symbols: List<Symbol>): List<SymbolWithCode> =
         encodingRepository.generateCodesByFano(symbols)
 }

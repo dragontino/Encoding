@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -59,8 +60,10 @@ import androidx.lifecycle.liveData
 import com.mathematics.encoding.EncodingApplication
 import com.mathematics.encoding.R
 import com.mathematics.encoding.data.repository.EncodingRepository
+import com.mathematics.encoding.isExpanded
 import com.mathematics.encoding.presentation.model.Settings
 import com.mathematics.encoding.presentation.model.Symbol
+import com.mathematics.encoding.presentation.model.SymbolWithCode
 import com.mathematics.encoding.presentation.model.Themes
 import com.mathematics.encoding.presentation.theme.*
 import com.mathematics.encoding.presentation.viewmodel.EncodingViewModel
@@ -98,7 +101,7 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(key1 = "") {
                 launch {
                     isLoading = true
-                    delay(100)
+                    delay(400)
                     isLoading = false
                 }
             }
@@ -145,11 +148,11 @@ fun MainScreen(
     startCount: Int,
     theme: Themes,
     encodingViewModel: EncodingViewModel,
-    onClickToButton: suspend (List<Symbol>) -> List<String>,
+    onClickToButton: suspend (List<Symbol>) -> List<SymbolWithCode>,
     updateTheme: (Themes) -> Unit,
 ) {
     val symbols by encodingViewModel.symbols.observeAsState(emptyArray())
-    var resultList by remember { mutableStateOf(listOf<String>()) }
+    var resultList by remember { mutableStateOf(listOf<SymbolWithCode>()) }
 
     val scope = rememberCoroutineScope { Dispatchers.Default }
     val context = LocalContext.current
@@ -158,7 +161,7 @@ fun MainScreen(
     val openBottomSheet = {
         scope.launch {
             modalBottomSheetState.animateTo(
-                targetValue = ModalBottomSheetValue.Expanded,
+                targetValue = ModalBottomSheetValue.HalfExpanded,
                 anim = spring(stiffness = Spring.StiffnessLow)
             )
         }
@@ -177,6 +180,11 @@ fun MainScreen(
         if (symbols.size < startCount)
             encodingViewModel.addSymbols(startCount - symbols.size)
     }
+
+    val bottomSheetCornerSize = animateDpAsState(
+        targetValue = if (modalBottomSheetState.isExpanded()) 0.dp else mediumCornerSize,
+        animationSpec = spring(stiffness = Spring.StiffnessLow)
+    ).value
 
 
     Scaffold(
@@ -222,14 +230,20 @@ fun MainScreen(
                         .border(
                             width = 1.dp,
                             color = animateColor(MaterialTheme.colorScheme.primary),
-                            shape = RoundedCornerShape(mediumCornerSize)
+                            shape = RoundedCornerShape(
+                                topStart = bottomSheetCornerSize,
+                                topEnd = bottomSheetCornerSize
+                            )
                         )
                         .fillMaxSize()
                 ) {
-                    CodesList(symbols = symbols, codes = resultList)
+                    CodesList(symbolWithCodes = resultList)
                 }
             },
-            sheetShape = RoundedCornerShape(mediumCornerSize),
+            sheetShape = RoundedCornerShape(
+                topStart = bottomSheetCornerSize,
+                topEnd = bottomSheetCornerSize
+            ),
             sheetBackgroundColor = animateColor(MaterialTheme.colorScheme.background),
             modifier = Modifier.padding(contentPadding)
         ) {
@@ -485,7 +499,7 @@ private fun TextButton(
 
 @ExperimentalFoundationApi
 @Composable
-private fun CodesList(symbols: Array<Symbol>, codes: List<String>, modifier: Modifier = Modifier) {
+private fun CodesList(symbolWithCodes: List<SymbolWithCode>, modifier: Modifier = Modifier) {
     Surface(
         shape = RoundedCornerShape(5.dp),
         color = animateColor(MaterialTheme.colorScheme.background),
@@ -503,9 +517,9 @@ private fun CodesList(symbols: Array<Symbol>, codes: List<String>, modifier: Mod
                 )
             }
 
-            items(codes.size) { index ->
-                val symbol = symbols[index]
-                val code = codes[index]
+            items(symbolWithCodes.size) { index ->
+                val symbol = symbolWithCodes[index].symbol
+                val code = symbolWithCodes[index].code
                 TableRow(
                     items = arrayOf(symbol.name, symbol.probability.toString(), code),
                     fontSize = 16.sp
@@ -530,16 +544,17 @@ private fun LazyItemScope.TableRow(items: Array<String>, fontSize: TextUnit) {
             .fillMaxWidth(),
     ) {
         items.forEach {
-            SelectionContainer {
+            SelectionContainer(
+                modifier = Modifier
+                    .padding(horizontal = 0.dp)
+                    .weight(1f)
+            ) {
                 Text(
                     text = it,
                     color = animateColor(MaterialTheme.colorScheme.onBackground),
                     fontSize = fontSize,
                     textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    modifier = Modifier
-                        .padding(horizontal = 0.dp)
-                        .weight(1f)
+                    maxLines = 1
                 )
             }
         }
@@ -576,15 +591,10 @@ private fun DefaultPreview() {
 @Composable
 private fun CodesListPreview() {
     CodesList(
-        symbols = arrayOf(
-            Symbol("A", 0.25),
-            Symbol("B", 0.65),
-            Symbol("C", 0.1)
-        ),
-        codes = listOf(
-            "01",
-            "1",
-            "00"
+        symbolWithCodes = listOf(
+            SymbolWithCode("A", 0.25, "01"),
+            SymbolWithCode("B", 0.65, "1"),
+            SymbolWithCode("C", 0.1, "00")
         )
     )
 }

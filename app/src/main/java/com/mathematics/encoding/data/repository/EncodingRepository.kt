@@ -1,23 +1,25 @@
 package com.mathematics.encoding.data.repository
 
-import com.mathematics.encoding.presentation.model.Symbol
-import kotlinx.coroutines.*
-import kotlin.coroutines.CoroutineContext
+import android.util.Log
+import com.mathematics.encoding.presentation.model.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
 class EncodingRepository {
 
-    suspend fun generateCodesByFano(symbols: List<Symbol>): List<String> {
+    suspend fun generateCodesByFano(symbols: List<Symbol>): List<SymbolWithCode> {
         val hashMap = HashMap<Symbol, StringBuilder>()
         symbols.forEach {
             if (it.probability != 0.0)
                 hashMap[it] = StringBuilder()
         }
-        return createCodesByFano(hashMap).map { it.toString() }
+        return createCodesByFano(hashMap).map { it.toSymbolWithCode() }
     }
 
 
-    private suspend fun createCodesByFano(symbolsMap: HashMap<Symbol, StringBuilder>): List<StringBuilder> {
+    private suspend fun createCodesByFano(symbolsMap: HashMap<Symbol, StringBuilder>): List<SymbolWithCodeBuilder> {
         val arraySum = symbolsMap.keys.sumOf { it.probability }
 
         fun f(x: Double): Double =
@@ -26,7 +28,7 @@ class EncodingRepository {
 
 
         if (symbolsMap.size == 1) {
-            return symbolsMap.values.toList()
+            return symbolsMap.toSymbolWithCodeList()
         }
 
         if (symbolsMap.size == 2) {
@@ -34,7 +36,7 @@ class EncodingRepository {
             for (i in keys.indices)
                 symbolsMap.getOrDefault(keys[i], StringBuilder()).append(i)
 
-            return symbolsMap.values.toList()
+            return symbolsMap.toSymbolWithCodeList()
         }
 
         return supervisorScope {
@@ -47,6 +49,7 @@ class EncodingRepository {
                     break
 
                 val currentProbability = sortedList[idx].probability
+                Log.d("EncodingRepository", "currentProbability = $currentProbability")
                 if (f(sum + currentProbability) < f(sum))
                     sum += currentProbability
                 else
@@ -55,9 +58,12 @@ class EncodingRepository {
                 idx++
             }
 
+            Log.d("EncodingRepository", "idx = $idx")
+
             val firstPart = sortedList.subList(0, idx)
+            Log.d("EncodingRepository", "firstList item = ${firstPart[0]}")
             val secondPart = sortedList.subList(idx, sortedList.size)
-            val result = ArrayList<StringBuilder>()
+            val result = ArrayList<SymbolWithCodeBuilder>()
 
             for ((i, arr) in arrayOf(secondPart, firstPart).withIndex()) {
                 arr.forEach { symbolsMap.getOrDefault(it, StringBuilder()).append(i) }
@@ -68,7 +74,7 @@ class EncodingRepository {
                 }
             }
 
-            return@supervisorScope result
+            return@supervisorScope result.sortedBy { it.code.length }
         }
     }
 }
