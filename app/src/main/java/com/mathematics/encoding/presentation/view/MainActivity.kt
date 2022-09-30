@@ -10,18 +10,15 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DarkMode
@@ -238,11 +235,13 @@ fun MainScreen(
         ) {
             EncodingItems(
                 symbols = symbols,
-                errors = symbols.map {
-                    it.probability > 1 || it.probability < 0
-                }.toBooleanArray()
+                onChangeName = { resultList = emptyList() },
+                onChangeProbability = {
+                    if (it == null)
+                        Toast.makeText(context, "Некорректная вероятность", Toast.LENGTH_SHORT).show()
+                    resultList = emptyList()
+                }
             ) {
-
                 Row(
                     modifier = Modifier
                         .padding(top = 16.dp, bottom = 8.dp)
@@ -327,8 +326,9 @@ fun MainScreen(
 @Composable
 private fun EncodingItems(
     symbols: Array<Symbol>,
-    errors: BooleanArray,
     modifier: Modifier = Modifier,
+    onChangeName: (String) -> Unit = {},
+    onChangeProbability: (Double?) -> Unit = {},
     itemsAfter: @Composable LazyItemScope.() -> Unit = {}
 ) {
     Log.d("EncodingItems", "first symbol = ${symbols.getOrNull(0)}")
@@ -338,8 +338,10 @@ private fun EncodingItems(
         itemsIndexed(symbols) { index, symbol ->
             EncodingItem(
                 symbol = symbol,
-                isError = errors[index],
+                isError = symbol.probability > 1 || symbol.probability < 0,
                 isLast = index == symbols.lastIndex,
+                onChangeName = onChangeName,
+                onChangeProbability = onChangeProbability,
                 modifier = Modifier
                     .animateContentSize(spring(stiffness = Spring.StiffnessLow))
                     .animateItemPlacement(spring(stiffness = Spring.StiffnessLow))
@@ -359,7 +361,9 @@ private fun EncodingItem(
     symbol: Symbol,
     isError: Boolean,
     isLast: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onChangeName: (String) -> Unit = {},
+    onChangeProbability: (Double?) -> Unit = {}
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -372,6 +376,7 @@ private fun EncodingItem(
             placeholderText = "Символ",
             onTextChange = {
                 symbol.name = it
+                onChangeName(it)
             }
         )
 
@@ -396,7 +401,10 @@ private fun EncodingItem(
             keyboardType = KeyboardType.Decimal,
             focusDirection = if (isLast) FocusDirection.Enter else FocusDirection.Next,
             onTextChange = {
-                symbol.probability = it.toDoubleOrNull() ?: 0.0
+                it.toDoubleOrNull().let { probability ->
+                    symbol.probability = probability ?: 0.0
+                    onChangeProbability(probability)
+                }
             },
         )
     }
@@ -522,16 +530,18 @@ private fun LazyItemScope.TableRow(items: Array<String>, fontSize: TextUnit) {
             .fillMaxWidth(),
     ) {
         items.forEach {
-            Text(
-                text = it,
-                color = animateColor(MaterialTheme.colorScheme.onBackground),
-                fontSize = fontSize,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                modifier = Modifier
-                    .padding(horizontal = 0.dp)
-                    .weight(1f)
-            )
+            SelectionContainer {
+                Text(
+                    text = it,
+                    color = animateColor(MaterialTheme.colorScheme.onBackground),
+                    fontSize = fontSize,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .padding(horizontal = 0.dp)
+                        .weight(1f)
+                )
+            }
         }
     }
 }
