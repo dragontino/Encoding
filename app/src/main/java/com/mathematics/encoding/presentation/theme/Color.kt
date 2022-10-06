@@ -13,3 +13,9 @@ val Pink40 = Color(0xFF7D5260)
 val BackgroundDark = Color(0xFF212123)
 val OrangeDark = Color(0xFF943E00)
 val OrangeLight = Color(0xFFff6A00)
+
+val CheckedThumbLight = Color(0xFF1F1C1B)
+val CheckedThumbDark = Color(0xFFF0D9C9)
+
+val UncheckedThumbLight = Color(0xFF857467)
+val UncheckedThumbDark = Color(0xFFF0DED1)

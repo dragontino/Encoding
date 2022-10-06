@@ -40,6 +40,12 @@ class EncodingViewModel(private val encodingRepository: EncodingRepository) : Vi
     }
 
 
+    fun clearSymbols(defaultSize: Int) {
+        val size = symbols.value?.size ?: defaultSize
+        symbolListLiveData.value = Array(size) { Symbol() }
+    }
+
+
     fun deleteSymbolsFromLast(count: Int = 1) {
         val array = symbols.value ?: emptyArray()
         symbolListLiveData.value = array.sliceArray(0..array.lastIndex - count)

@@ -7,8 +7,7 @@ import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -25,7 +24,8 @@ import com.mathematics.encoding.presentation.model.toNotNullableThemes
 private val DarkColorScheme = darkColorScheme(
     primary = OrangeDark,
     secondary = PurpleGrey80,
-    tertiary = Pink80,
+    tertiary = CheckedThumbDark,
+    tertiaryContainer = UncheckedThumbDark,
     background = BackgroundDark,
     onBackground = Color.White,
     onPrimary = Color.White,
@@ -36,7 +36,8 @@ private val DarkColorScheme = darkColorScheme(
 private val LightColorScheme = lightColorScheme(
     primary = OrangeLight,
     secondary = PurpleGrey40,
-    tertiary = Pink40,
+    tertiary = CheckedThumbLight,
+    tertiaryContainer = UncheckedThumbLight,
     background = Color.White,
     onBackground = Color.Black,
     onPrimary = Color.Black,
@@ -72,8 +73,9 @@ fun EncodingAppTheme(
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = statusBarColor
-            WindowCompat.getInsetsController(window, view)
-                .isAppearanceLightStatusBars = !isDarkTheme
+            if (!dynamicColor)
+                WindowCompat.getInsetsController(window, view)
+                    .isAppearanceLightStatusBars = !isDarkTheme
         }
     }
 
@@ -96,3 +98,7 @@ fun animateColor(
 
 val mediumCornerSize = 13.dp
 val smallCornerSize = 6.dp
+
+
+//var ColorScheme.checkedThumb: Color by mutableStateOf(CheckedThumbLight)
+//var ColorScheme.uncheckedThumb: Color by mutableStateOf(UncheckedThumbLight)
