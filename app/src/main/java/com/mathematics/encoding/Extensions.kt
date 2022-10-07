@@ -1,5 +1,9 @@
 package com.mathematics.encoding
 
+import android.content.Context
+import android.widget.Toast
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetState
 import androidx.compose.material.ModalBottomSheetValue
@@ -29,4 +33,27 @@ fun Double.round(countSigns: Int): Double {
     else
         BigDecimal(this)
     return bigDecimal.setScale(countSigns, RoundingMode.HALF_UP).toDouble()
+}
+
+
+
+@ExperimentalMaterialApi
+suspend fun ModalBottomSheetState.open(stiffness: Float = Spring.StiffnessMediumLow) {
+    animateTo(
+        targetValue = ModalBottomSheetValue.HalfExpanded,
+        anim = spring(stiffness = stiffness)
+    )
+}
+
+
+@ExperimentalMaterialApi
+suspend fun ModalBottomSheetState.close(stiffness: Float = Spring.StiffnessMediumLow) =
+    animateTo(
+        targetValue = ModalBottomSheetValue.Hidden,
+        anim = spring(stiffness = stiffness)
+    )
+
+
+fun showToast(context: Context, text: String, duration: Int = Toast.LENGTH_SHORT) {
+    Toast.makeText(context, text, duration).show()
 }

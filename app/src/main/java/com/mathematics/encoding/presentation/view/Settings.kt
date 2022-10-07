@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -33,21 +34,49 @@ fun Settings(settingsViewModel: SettingsViewModel) {
         // TODO: смена темы
 
         SwitchItem(
-            text = stringResource(R.string.use_dynamic_color),
-            checked = settings.dynamicColor,
+            text = {
+                Text(
+                    text = "Автоввод символов из текста",
+                    style = it
+                )
+
+                Text(
+                    text = "Если включён, вероятности символов высчитаются автоматически из введённого текста",
+                    style = it.copy(
+                        color = animateColor(
+                            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                        ),
+                        fontSize = 13.sp
+                    )
+                )
+            },
+            checked = settings.autoInputProbabilities,
             onCheckedChange = {
-                settingsViewModel.updateSettings { dynamicColor = it }
+                settingsViewModel.updateAutoInputProbabilities(it) //{ autoInputProbabilities = it }
             }
         )
 
-        // TODO: смена стартого количества элементов
+        SwitchItem(
+            text = {
+                Text(
+                    text = stringResource(R.string.use_dynamic_color),
+                    style = it
+                )
+            },
+            checked = settings.dynamicColor,
+            onCheckedChange = { checked ->
+                settingsViewModel.updateDynamicColor(checked) //{ dynamicColor = checked }
+            }
+        )
+
+        // TODO: смена стартового количества элементов
     }
 }
 
 
 @Composable
 private fun SwitchItem(
-    text: String,
+    text: @Composable ColumnScope.(TextStyle) -> Unit,
     checked: Boolean,
     onCheckedChange: (checked: Boolean) -> Unit
 ) {
@@ -60,16 +89,19 @@ private fun SwitchItem(
             .padding(16.dp)
             .fillMaxWidth(),
     ) {
-        Text(
-            text = text,
-            color = animateColor(MaterialTheme.colorScheme.onBackground),
-            textAlign = TextAlign.Start,
-            fontSize = 16.sp,
+        Column(
             modifier = Modifier
                 .padding(vertical = 16.dp)
                 .padding(start = 4.dp, end = 20.dp)
-                .weight(2f)
-        )
+                .weight(2f),
+        ) {
+            text(
+                MaterialTheme.typography.bodyMedium.copy(
+                    color = animateColor(MaterialTheme.colorScheme.onBackground),
+                    textAlign = TextAlign.Start
+                )
+            )
+        }
 
         Switch(
             checked = checked,
@@ -100,6 +132,10 @@ private fun SwitchItem(
 private fun SwitchItemPreview() {
     EncodingAppTheme(settings = liveData { Settings(theme = Themes.Dark) }) {
         var checked by remember { mutableStateOf(false) }
-        SwitchItem(text = "Использовать динамические цвета", checked = checked, onCheckedChange = { checked = it })
+        SwitchItem(
+            text = { Text("Использовать динамические цвета") },
+            checked = checked,
+            onCheckedChange = { checked = it }
+        )
     }
 }

@@ -78,7 +78,6 @@ class MainActivity : ComponentActivity() {
                         theme = theme,
                         settingsViewModel = settingsViewModel,
                         encodingViewModel = encodingViewModel,
-                        onClickToButton = { encodingViewModel.generateCodesByFano(it) },
                     )
             }
         }

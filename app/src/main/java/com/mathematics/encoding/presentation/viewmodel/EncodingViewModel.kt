@@ -56,4 +56,8 @@ class EncodingViewModel(private val encodingRepository: EncodingRepository) : Vi
 
     suspend fun generateCodesByFano(symbols: List<Symbol>): List<SymbolWithCode> =
         encodingRepository.generateCodesByFano(symbols)
+
+
+    suspend fun generateCodesByFano(text: String, considerGap: Boolean): List<SymbolWithCode> =
+        encodingRepository.generateCodesByFano(text, considerGap)
 }
