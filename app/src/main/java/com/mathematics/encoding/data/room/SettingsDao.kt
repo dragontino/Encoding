@@ -15,7 +15,7 @@ interface SettingsDao {
     suspend fun addSettings(settings: Settings)
 
     @Query("UPDATE SettingsTable SET theme = :themes")
-    suspend fun updateTheme(themes: Themes?)
+    suspend fun updateTheme(themes: Themes)
 
     @Query("UPDATE SettingsTable SET dynamicColor = :dynamicColor")
     suspend fun updateDynamicColor(dynamicColor: Boolean)

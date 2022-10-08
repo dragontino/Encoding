@@ -42,7 +42,7 @@ class SettingsViewModel(private val settingsRepository: SettingsRepository) : Vi
         }
     }
 
-    fun updateTheme(theme: Themes?) {
+    fun updateTheme(theme: Themes) {
         viewModelScope.launch {
             settingsRepository.updateTheme(theme)
         }

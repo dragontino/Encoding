@@ -18,7 +18,7 @@ fun ModalBottomSheetState.isExpanded() =
 
 
 val List<SymbolWithCode>.averageCodeLength: Double
-get() = sumOf { it.code.length }.toDouble() / size
+get() = sumOf { it.code.length * it.symbol.probability }
 
 
 val List<SymbolWithCode>.entropy: Double

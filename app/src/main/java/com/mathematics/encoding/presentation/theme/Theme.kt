@@ -19,7 +19,6 @@ import androidx.lifecycle.LiveData
 import com.mathematics.encoding.presentation.model.Settings
 import com.mathematics.encoding.presentation.model.Themes
 import com.mathematics.encoding.presentation.model.isDark
-import com.mathematics.encoding.presentation.model.toNotNullableThemes
 
 private val DarkColorScheme = darkColorScheme(
     primary = OrangeDark,
@@ -83,7 +82,7 @@ fun EncodingAppTheme(
         colorScheme = colorScheme,
         typography = Typography,
         content = {
-            content(settingsState.value.theme.toNotNullableThemes())
+            content(settingsState.value.theme)
         }
     )
 }

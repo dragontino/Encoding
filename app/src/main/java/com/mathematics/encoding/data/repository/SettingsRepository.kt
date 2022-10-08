@@ -11,7 +11,7 @@ class SettingsRepository(private val settingsDao: SettingsDao) {
         settingsDao.addSettings(settings)
     }
 
-    suspend fun updateTheme(theme: Themes?) {
+    suspend fun updateTheme(theme: Themes) {
         settingsDao.updateTheme(theme)
     }
 
@@ -31,5 +31,8 @@ class SettingsRepository(private val settingsDao: SettingsDao) {
 //        settingsDao.updateSettings(settings)
 
     fun getSettings() =
-        settingsDao.getSettings().map { it ?: Settings() }
+        settingsDao.getSettings().map {
+            if (it == null) addSettings(Settings())
+            it ?: Settings()
+        }
 }

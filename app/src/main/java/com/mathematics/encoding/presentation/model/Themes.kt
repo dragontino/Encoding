@@ -5,31 +5,20 @@ import androidx.compose.runtime.Composable
 
 enum class Themes {
     Light,
-    Dark;
+    Dark,
+    System;
 
-    val isDark get(): Boolean = when (this) {
-        Light -> false
-        Dark -> true
-    }
-
-    fun switch() = when (this) {
+    fun switch() = when(this) {
         Light -> Dark
         Dark -> Light
+        System -> Light
     }
 }
 
 
 @Composable
-internal fun Themes?.toNotNullableThemes() = when {
-    this != null -> this
-    isSystemInDarkTheme() -> Themes.Dark
-    else -> Themes.Light
-}
-
-
-
-@Composable
-internal fun Themes?.isDark() = when (this) {
-    null -> isSystemInDarkTheme()
-    else -> this.isDark
+internal fun Themes.isDark() = when (this) {
+    Themes.Light -> false
+    Themes.Dark -> true
+    Themes.System -> isSystemInDarkTheme()
 }
