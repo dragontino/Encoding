@@ -240,7 +240,7 @@ private fun ThemeDialog(
                     .fillMaxWidth()
             ) {
                 Text(
-                    text = "Темы",
+                    text = "Тема",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onBackground.animate(),
                     textAlign = TextAlign.Start,

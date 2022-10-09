@@ -59,6 +59,7 @@ import com.mathematics.encoding.presentation.theme.*
 import com.mathematics.encoding.presentation.viewmodel.EncodingViewModel
 import com.mathematics.encoding.presentation.viewmodel.SettingsViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -110,14 +111,18 @@ fun MainScreen(
         else -> updateStatusBarColor(MaterialTheme.colorScheme.primary)
     }
 
-
-    LaunchedEffect(key1 = symbols.size, key2 = settings.startCount) {
+    LaunchedEffect(key1 = "") {
         isLoading = true
-        if (symbols.size < settings.startCount)
-            encodingViewModel.addSymbols(settings.startCount - symbols.size)
         delay(loadingTimeMillis)
         isLoading = false
         delay(200)
+        awaitCancellation()
+    }
+
+
+    LaunchedEffect(key1 = symbols.size, key2 = settings.startCount) {
+        if (symbols.size < settings.startCount)
+            encodingViewModel.addSymbols(settings.startCount - symbols.size)
     }
 
 
@@ -215,6 +220,25 @@ fun MainScreen(
                     )
                 )
             },
+            floatingActionButton = {
+//                AnimatedVisibility(
+//                    visible = !settings.autoInputProbabilities,
+//                    enter = scaleIn(),
+//                    exit = scaleOut()
+//                ) {
+//                    FloatingActionButton(
+//                        onClick = { encodingViewModel.addSymbol(Symbol()) },
+//                        containerColor = MaterialTheme.colorScheme.primary.animate(),
+//                        contentColor = MaterialTheme.colorScheme.onPrimary.animate()
+//                    ) {
+//                        Icon(
+//                            imageVector = Icons.Rounded.Add,
+//                            contentDescription = "add symbol"
+//                        )
+//                    }
+//                }
+            },
+            floatingActionButtonPosition = FabPosition.End,
             containerColor = MaterialTheme.colorScheme.background.animate(),
             contentWindowInsets = WindowInsets(2.dp),
             modifier = Modifier.fillMaxSize()
@@ -274,6 +298,10 @@ fun MainScreen(
                             unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.animate()
                         ),
                         modifier = Modifier
+                            .animateEnterExit(
+                                enter = scaleIn(spring(stiffness = Spring.StiffnessLow)),
+                                exit = scaleOut(spring(stiffness = Spring.StiffnessLow))
+                            )
                             .padding(bottom = 4.dp)
                             .padding(16.dp)
                             .fillMaxWidth()
@@ -435,7 +463,7 @@ private fun EncodingItem(
     ) {
         OutlinedField(
             text = symbol.name,
-            placeholderText = "Символ",
+            placeholderText = stringResource(R.string.symbol),
             onTextChange = {
                 symbol.name = it
                 onChangeName(it)
@@ -508,9 +536,8 @@ private fun RowScope.OutlinedField(
         colors = TextFieldDefaults.outlinedTextFieldColors(
             textColor = MaterialTheme.colorScheme.onBackground.animate(),
             containerColor = MaterialTheme.colorScheme.primaryContainer.animate(),
-            placeholderColor = MaterialTheme.colorScheme.onBackground.copy(
-                alpha = 0.6f
-            )
+            placeholderColor = MaterialTheme.colorScheme.onBackground
+                .copy(alpha = 0.6f)
                 .animate(),
             focusedBorderColor = MaterialTheme.colorScheme.primary.animate(),
             disabledBorderColor = MaterialTheme.colorScheme.primary.animate(),
@@ -585,7 +612,7 @@ private fun BottomButtons(
 
     if (calculateCodes != null) {
         TextButton(
-            text = "Вычислить коды символов по методу Фано",
+            text = stringResource(R.string.calculate_codes),
             shape = RoundedCornerShape(mediumCornerSize),
             onClick = calculateCodes,
             modifier = Modifier

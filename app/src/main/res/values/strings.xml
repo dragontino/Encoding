@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Кодировка</string>
-    <string name="app_version">Версия приложения: 1.2.1 от 09.10.2022</string>
+    <string name="app_version">Версия приложения: 1.2.2 от 09.10.2022</string>
 
 <!--  Settings  -->
     <string name="auto_input_symbols">Автоввод символов из текста</string>
@@ -8,4 +8,8 @@
 
     <string name="dynamic_color">Использовать динамические цвета</string>
     <string name="dynamic_color_definition">Цветовая палитра приложения автоматически адаптируется и интегрируются с пользовательскими настройками</string>
+
+<!--  Main  -->
+    <string name="calculate_codes">Вычислить коды символов по методу Шеннона – Фано</string>
+    <string name="symbol">Символ</string>
 </resources>

@@ -11,9 +11,9 @@ data class SymbolWithCodeBuilder(val symbol: Symbol, val code: StringBuilder) :
         val compareCodeLengths = this.code.length.compareTo(other.code.length)
 
         return when {
-            compareCodeLengths == 0 -> this.code.toString().toInt() - other.code.toString().toInt()
-            compareProbabilities == 0 -> -compareCodeLengths
-            else -> compareProbabilities
+            compareProbabilities != 0 -> compareProbabilities
+            compareCodeLengths != 0 -> -compareCodeLengths
+            else -> this.code.toString().toInt() - other.code.toString().toInt()
         }
     }
 
