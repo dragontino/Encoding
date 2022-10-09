@@ -80,7 +80,7 @@ class EncodingRepository {
             for (i in keys.indices)
                 symbolsMap.getOrDefault(keys[i], StringBuilder()).append(i)
 
-            return symbolsMap.toSymbolWithCodeList()
+            return symbolsMap.toSymbolWithCodeList().sortedByDescending { it }
         }
 
         return supervisorScope {
