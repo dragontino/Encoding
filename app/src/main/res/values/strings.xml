@@ -1,5 +1,11 @@
 <resources>
     <string name="app_name">Кодировка</string>
-    <string name="use_dynamic_color">Использовать динамические цвета</string>
-    <string name="app_version">Версия приложения: 1.1.4 от 08.10.2022</string>
+    <string name="app_version">Версия приложения: 1.2.0 от 09.10.2022</string>
+
+<!--  Settings  -->
+    <string name="auto_input_symbols">Автоввод символов из текста</string>
+    <string name="auto_input_symbols_definition">Вероятности символов будут высчитываться из введённого текста автоматически</string>
+
+    <string name="dynamic_color">Использовать динамические цвета</string>
+    <string name="dynamic_color_definition">Цветовая палитра приложения автоматически адаптируется и интегрируются с пользовательскими настройками</string>
 </resources>

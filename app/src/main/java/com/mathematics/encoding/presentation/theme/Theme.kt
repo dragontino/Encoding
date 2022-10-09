@@ -3,11 +3,11 @@ package com.mathematics.encoding.presentation.theme
 import android.app.Activity
 import android.os.Build
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -47,6 +47,7 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun EncodingAppTheme(
     settings: LiveData<Settings>,
+    statusBarColor: Color? = MaterialTheme.colorScheme.primary,
     content: @Composable (theme: Themes) -> Unit
 ) {
     val settingsState = settings.observeAsState(initial = Settings())
@@ -65,13 +66,13 @@ fun EncodingAppTheme(
         else -> LightColorScheme
     }
 
-    val statusBarColor = animateColor(colorScheme.primary).toArgb()
+    val statusBarColorArgb = (statusBarColor ?: colorScheme.primary).animate().toArgb()
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = statusBarColor
+            window.statusBarColor = statusBarColorArgb
             if (!dynamicColor)
                 WindowCompat.getInsetsController(window, view)
                     .isAppearanceLightStatusBars = !isDarkTheme
@@ -89,10 +90,21 @@ fun EncodingAppTheme(
 
 
 @Composable
+fun Color.animate(stiffness: Float = Spring.StiffnessMediumLow) =
+    animateColorAsState(
+        targetValue = this,
+        animationSpec = spring(stiffness = stiffness)
+    ).value
+
+@Deprecated("Use Color.animate() function instead", ReplaceWith("targetColor.animate()"))
+@Composable
 fun animateColor(
     targetColor: Color,
-    animationSpec: AnimationSpec<Color> = spring(stiffness = Spring.StiffnessMediumLow)
-) = animateColorAsState(targetValue = targetColor, animationSpec = animationSpec).value
+    stiffness: Float = Spring.StiffnessMediumLow
+) = animateColorAsState(
+    targetValue = targetColor,
+    animationSpec = spring(stiffness = stiffness)
+).value
 
 
 val mediumCornerSize = 13.dp

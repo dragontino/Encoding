@@ -7,6 +7,9 @@ import androidx.compose.animation.core.spring
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetState
 import androidx.compose.material.ModalBottomSheetValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.graphics.ColorUtils
 import com.mathematics.encoding.presentation.model.SymbolWithCode
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -15,6 +18,13 @@ import kotlin.math.log2
 @ExperimentalMaterialApi
 fun ModalBottomSheetState.isExpanded() =
     targetValue == ModalBottomSheetValue.Expanded
+
+
+const val loadingTimeMillis = 400L
+
+@ExperimentalMaterialApi
+fun ModalBottomSheetState.isHalfExpanded() =
+    targetValue == ModalBottomSheetValue.HalfExpanded
 
 
 val List<SymbolWithCode>.averageCodeLength: Double
@@ -56,4 +66,9 @@ suspend fun ModalBottomSheetState.close(stiffness: Float = Spring.StiffnessMediu
 
 fun showToast(context: Context, text: String, duration: Int = Toast.LENGTH_SHORT) {
     Toast.makeText(context, text, duration).show()
+}
+
+
+operator fun Color.plus(other: Color): Color {
+    return Color(ColorUtils.blendARGB(this.toArgb(), other.toArgb(), 1f))
 }

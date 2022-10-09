@@ -1,11 +1,9 @@
 package com.mathematics.encoding.presentation.view
 
 import android.util.Log
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -35,6 +33,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
@@ -60,10 +59,11 @@ import com.mathematics.encoding.presentation.theme.*
 import com.mathematics.encoding.presentation.viewmodel.EncodingViewModel
 import com.mathematics.encoding.presentation.viewmodel.SettingsViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
+@ExperimentalAnimationApi
 @ExperimentalComposeUiApi
 @ExperimentalFoundationApi
 @ExperimentalMaterialApi
@@ -72,127 +72,183 @@ import kotlin.math.abs
 fun MainScreen(
     settingsViewModel: SettingsViewModel,
     encodingViewModel: EncodingViewModel,
-    theme: Themes
+    theme: Themes,
+    updateStatusBarColor: (Color) -> Unit = {}
 ) {
     val symbols by encodingViewModel.symbols.observeAsState(emptyArray())
     val settings by settingsViewModel.currentSettings.observeAsState(Settings())
     var resultList by remember { mutableStateOf(listOf<SymbolWithCode>()) }
 
+
     val scope = rememberCoroutineScope { Dispatchers.Default }
     val context = LocalContext.current
-    val modalBottomSheetState =
+    val sheetState =
         rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
+
+    var isLoading by remember { mutableStateOf(false) }
 
 
     var sheetContent: @Composable () -> Unit by remember { mutableStateOf({}) }
 
-
-    val openBottomSheet: (sheetContent: @Composable () -> Unit) -> Job = {
-        sheetContent = it
-        scope.launch { modalBottomSheetState.open() }
-    }
-
     val closeBottomSheet = {
-        scope.launch { modalBottomSheetState.close() }
+        scope.launch { sheetState.close() }
     }
+
+    fun openBottomSheet(title: String = "", content: @Composable ColumnScope.() -> Unit) {
+        sheetContent = {
+            BottomSheet(title = title, bottomSheetContent = content)
+        }
+        scope.launch { sheetState.open() }
+    }
+
+    when {
+        sheetState.isExpanded() -> updateStatusBarColor(MaterialTheme.colorScheme.background)
+        sheetState.isHalfExpanded() -> updateStatusBarColor(
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.32f) +
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+        )
+        else -> updateStatusBarColor(MaterialTheme.colorScheme.primary)
+    }
+
 
     LaunchedEffect(key1 = symbols.size, key2 = settings.startCount) {
+        isLoading = true
         if (symbols.size < settings.startCount)
             encodingViewModel.addSymbols(settings.startCount - symbols.size)
+        delay(loadingTimeMillis)
+        isLoading = false
+        delay(200)
     }
 
+
     val bottomSheetCornerSize = animateDpAsState(
-        targetValue = if (modalBottomSheetState.isExpanded()) 0.dp else mediumCornerSize,
-        animationSpec = spring(stiffness = Spring.StiffnessLow)
+        targetValue = if (sheetState.isExpanded()) 0.dp else mediumCornerSize,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium)
     ).value
 
+    val bottomSheetBorderColor =
+        if (sheetState.isExpanded()) Color.Transparent
+        else MaterialTheme.colorScheme.primary
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                    )
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            openBottomSheet { Settings(settingsViewModel) }
-                        }
-                    ) {
-                        Icon(Icons.Rounded.Settings, contentDescription = "settings")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        settingsViewModel.updateTheme(theme.switch()) //{ this.theme = theme.switch() }
-                    }) {
-                        Icon(
-                            imageVector = if (settings.theme.isDark())
-                                Icons.Rounded.LightMode
-                            else
-                                Icons.Rounded.DarkMode,
-                            contentDescription = "switch theme",
+
+    ModalBottomSheetLayout(
+        sheetState = sheetState,
+        sheetContent = {
+            Column(
+                modifier = Modifier
+                    .border(
+                        width = 1.dp,
+                        color = bottomSheetBorderColor.animate(),
+                        shape = RoundedCornerShape(
+                            topStart = bottomSheetCornerSize,
+                            topEnd = bottomSheetCornerSize
                         )
-                    }
-                },
-                scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(),
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = animateColor(MaterialTheme.colorScheme.primary),
-                    titleContentColor = animateColor(MaterialTheme.colorScheme.onPrimary),
-                    actionIconContentColor = animateColor(MaterialTheme.colorScheme.onPrimary)
-                )
-            )
-        },
-        containerColor = animateColor(MaterialTheme.colorScheme.background),
-        contentWindowInsets = WindowInsets(2.dp),
-        modifier = Modifier.fillMaxSize()
-    ) { contentPadding ->
+                    )
+                    .fillMaxSize()
+            ) {
+                Box(contentAlignment = Alignment.TopCenter, modifier = Modifier.weight(2f)) {
+                    sheetContent()
+                }
 
-        ModalBottomSheetLayout(
-            sheetState = modalBottomSheetState,
-            sheetContent = {
+                Text(
+                    text = stringResource(R.string.app_version),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center,
+                    fontStyle = FontStyle.Italic,
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .fillMaxWidth()
+                )
+            }
+        },
+        sheetShape = RoundedCornerShape(
+            topStart = bottomSheetCornerSize,
+            topEnd = bottomSheetCornerSize
+        ),
+        sheetBackgroundColor = MaterialTheme.colorScheme.background.animate()
+    ) {
+        Scaffold(
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            stringResource(R.string.app_name),
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = {
+                                openBottomSheet("Настройки") { Settings(settingsViewModel) }
+                            }
+                        ) {
+                            Icon(Icons.Rounded.Settings, contentDescription = "settings")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = {
+                            openBottomSheet("Тема") {
+                                Themes(theme) {
+                                    closeBottomSheet()
+                                    settingsViewModel.updateTheme(it)
+                                }
+                            }
+//                        settingsViewModel.updateTheme(theme.switch()) //{ this.theme = theme.switch() }
+                        }) {
+                            Icon(
+                                imageVector = if (settings.theme.isDark())
+                                    Icons.Rounded.LightMode
+                                else
+                                    Icons.Rounded.DarkMode,
+                                contentDescription = "switch theme",
+                            )
+                        }
+                    },
+                    scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(),
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary.animate(),
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary.animate(),
+                        actionIconContentColor = MaterialTheme.colorScheme.onPrimary.animate()
+                    )
+                )
+            },
+            containerColor = MaterialTheme.colorScheme.background.animate(),
+            contentWindowInsets = WindowInsets(2.dp),
+            modifier = Modifier.fillMaxSize()
+        ) { contentPadding ->
+
+            AnimatedVisibility(
+                visible = isLoading,
+                enter = fadeIn() + slideInVertically(),
+                exit = fadeOut() + slideOutVertically()
+            ) {
                 Column(
                     modifier = Modifier
-                        .border(
-                            width = 1.dp,
-                            color = animateColor(MaterialTheme.colorScheme.primary),
-                            shape = RoundedCornerShape(
-                                topStart = bottomSheetCornerSize,
-                                topEnd = bottomSheetCornerSize
-                            )
-                        )
-                        .fillMaxSize()
+                        .padding(contentPadding)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(contentAlignment = Alignment.TopCenter, modifier = Modifier.weight(2f)) {
-                        sheetContent()
-                    }
-
-                    Text(
-                        text = stringResource(R.string.app_version),
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
-                        fontSize = 14.sp,
-                        textAlign = TextAlign.Center,
-                        fontStyle = FontStyle.Italic,
+                    CircularProgressIndicator(
                         modifier = Modifier
-                            .padding(8.dp)
-                            .fillMaxWidth()
+                            .scale(1.3f)
+                            .padding(20.dp),
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
-            },
-            sheetShape = RoundedCornerShape(
-                topStart = bottomSheetCornerSize,
-                topEnd = bottomSheetCornerSize
-            ),
-            sheetBackgroundColor = animateColor(MaterialTheme.colorScheme.background),
-            modifier = Modifier.padding(contentPadding)
-        ) {
+            }
 
-            if (settings.autoInputProbabilities) {
+            if (isLoading) return@Scaffold
+
+
+            AnimatedVisibility(
+                visible = settings.autoInputProbabilities,
+                enter = expandHorizontally(spring(stiffness = Spring.StiffnessLow)),
+                exit = shrinkHorizontally(spring(stiffness = Spring.StiffnessLow)),
+                modifier = Modifier.padding(contentPadding)
+            ) {
                 var text by remember { mutableStateOf("") }
 
                 Column(Modifier.fillMaxWidth()) {
@@ -211,11 +267,11 @@ fun MainScreen(
                         shape = RoundedCornerShape(mediumCornerSize),
                         textStyle = MaterialTheme.typography.bodyMedium,
                         colors = TextFieldDefaults.outlinedTextFieldColors(
-                            textColor = animateColor(MaterialTheme.colorScheme.onBackground),
-                            placeholderColor = animateColor(MaterialTheme.colorScheme.onBackground),
-                            cursorColor = animateColor(MaterialTheme.colorScheme.primary),
-                            focusedBorderColor = animateColor(MaterialTheme.colorScheme.primary),
-                            unfocusedBorderColor = animateColor(MaterialTheme.colorScheme.onBackground)
+                            textColor = MaterialTheme.colorScheme.onBackground.animate(),
+                            placeholderColor = MaterialTheme.colorScheme.onBackground.animate(),
+                            cursorColor = MaterialTheme.colorScheme.primary.animate(),
+                            focusedBorderColor = MaterialTheme.colorScheme.primary.animate(),
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.animate()
                         ),
                         modifier = Modifier
                             .padding(bottom = 4.dp)
@@ -237,9 +293,9 @@ fun MainScreen(
                                 settingsViewModel.updateConsiderGap(it) //{ considerGap = it }
                             },
                             colors = CheckboxDefaults.colors(
-                                checkedColor = animateColor(MaterialTheme.colorScheme.primary),
-                                checkmarkColor = animateColor(MaterialTheme.colorScheme.onPrimary),
-                                uncheckedColor = animateColor(MaterialTheme.colorScheme.onBackground)
+                                checkedColor = MaterialTheme.colorScheme.primary.animate(),
+                                checkmarkColor = MaterialTheme.colorScheme.onPrimary.animate(),
+                                uncheckedColor = MaterialTheme.colorScheme.onBackground.animate()
                             ),
                             modifier = Modifier
                                 .scale(1.1f)
@@ -249,7 +305,7 @@ fun MainScreen(
                         Text(
                             "Учитывать пробел",
                             style = MaterialTheme.typography.bodyMedium.copy(
-                                color = animateColor(MaterialTheme.colorScheme.onBackground),
+                                color = MaterialTheme.colorScheme.onBackground.animate(),
                                 fontSize = 17.sp
                             ),
                             modifier = Modifier.padding(start = 6.dp)
@@ -273,8 +329,15 @@ fun MainScreen(
                         }
                     )
                 }
+            }
 
-            } else {
+
+            AnimatedVisibility(
+                visible = !settings.autoInputProbabilities,
+                enter = expandHorizontally(spring(stiffness = Spring.StiffnessLow)),
+                exit = shrinkHorizontally(spring(stiffness = Spring.StiffnessLow)),
+                modifier = Modifier.padding(contentPadding)
+            ) {
                 EncodingItems(
                     symbols = symbols,
                     onChangeName = { resultList = emptyList() },
@@ -301,8 +364,7 @@ fun MainScreen(
                             if (symbols.find { it.probability > 1 || it.probability < 0 } != null) {
                                 showToast(context, "Некорректные вероятности!")
                                 return@BottomButtons
-                            }
-                            else if (abs(symbols.sumOf { it.probability } - 1) > 0.005) {
+                            } else if (abs(symbols.sumOf { it.probability } - 1) > 0.005) {
                                 showToast(context, "Сумма вероятностей должна равнятся 1")
                                 return@BottomButtons
                             }
@@ -382,7 +444,7 @@ private fun EncodingItem(
 
         Text(
             "=",
-            color = animateColor(MaterialTheme.colorScheme.onBackground),
+            color = MaterialTheme.colorScheme.onBackground.animate(),
             fontSize = 20.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
@@ -444,18 +506,17 @@ private fun RowScope.OutlinedField(
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Next),
         keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(focusDirection) }),
         colors = TextFieldDefaults.outlinedTextFieldColors(
-            textColor = animateColor(MaterialTheme.colorScheme.onBackground),
-            containerColor = animateColor(MaterialTheme.colorScheme.primaryContainer),
-            placeholderColor = animateColor(
-                MaterialTheme.colorScheme.onBackground.copy(
-                    alpha = 0.6f
-                )
-            ),
-            focusedBorderColor = animateColor(MaterialTheme.colorScheme.primary),
-            disabledBorderColor = animateColor(MaterialTheme.colorScheme.primary),
-            unfocusedBorderColor = animateColor(MaterialTheme.colorScheme.primary),
-            errorBorderColor = animateColor(MaterialTheme.colorScheme.error),
-            errorCursorColor = animateColor(MaterialTheme.colorScheme.error)
+            textColor = MaterialTheme.colorScheme.onBackground.animate(),
+            containerColor = MaterialTheme.colorScheme.primaryContainer.animate(),
+            placeholderColor = MaterialTheme.colorScheme.onBackground.copy(
+                alpha = 0.6f
+            )
+                .animate(),
+            focusedBorderColor = MaterialTheme.colorScheme.primary.animate(),
+            disabledBorderColor = MaterialTheme.colorScheme.primary.animate(),
+            unfocusedBorderColor = MaterialTheme.colorScheme.primary.animate(),
+            errorBorderColor = MaterialTheme.colorScheme.error.animate(),
+            errorCursorColor = MaterialTheme.colorScheme.error.animate()
         ),
         isError = isError,
         shape = RoundedCornerShape(10.dp),
@@ -548,13 +609,13 @@ private fun TextButton(
         onClick = onClick,
         shape = shape,
         colors = ButtonDefaults.textButtonColors(
-            containerColor = animateColor(MaterialTheme.colorScheme.primary),
-            contentColor = animateColor(MaterialTheme.colorScheme.onPrimary)
+            containerColor = MaterialTheme.colorScheme.primary.animate(),
+            contentColor = MaterialTheme.colorScheme.onPrimary.animate()
         ),
         modifier = modifier,
         border = BorderStroke(
             1.2.dp,
-            animateColor(MaterialTheme.colorScheme.onBackground)
+            MaterialTheme.colorScheme.onBackground.animate()
         ),
     ) {
         Text(text = text, fontSize = 16.sp, textAlign = TextAlign.Center)
@@ -569,12 +630,10 @@ private fun TextButton(
 @ExperimentalFoundationApi
 @Composable
 private fun CodesList(symbolWithCodes: List<SymbolWithCode>, modifier: Modifier = Modifier) {
-    val sortedList = symbolWithCodes.sortedBy { it.code.length }
-
     Column(
         modifier = modifier
             .background(
-                color = animateColor(MaterialTheme.colorScheme.background),
+                color = MaterialTheme.colorScheme.background.animate(),
                 shape = RoundedCornerShape(smallCornerSize)
             )
             .padding(9.dp)
@@ -584,14 +643,14 @@ private fun CodesList(symbolWithCodes: List<SymbolWithCode>, modifier: Modifier 
             "Средняя длина кода = ${symbolWithCodes.averageCodeLength.round(2)}",
             fontSize = MaterialTheme.typography.labelSmall.fontSize,
             fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-            color = animateColor(MaterialTheme.colorScheme.onBackground),
+            color = MaterialTheme.colorScheme.onBackground.animate(),
             modifier = Modifier.padding(top = 8.dp, bottom = 2.dp, start = 6.dp)
         )
         Text(
             "Энтропия = ${symbolWithCodes.entropy.round(2)}",
             fontSize = MaterialTheme.typography.labelSmall.fontSize,
             fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-            color = animateColor(MaterialTheme.colorScheme.onBackground),
+            color = MaterialTheme.colorScheme.onBackground.animate(),
             modifier = Modifier.padding(bottom = 8.dp, top = 2.dp, start = 6.dp)
         )
 
@@ -599,21 +658,21 @@ private fun CodesList(symbolWithCodes: List<SymbolWithCode>, modifier: Modifier 
             Modifier
                 .border(
                     1.5.dp,
-                    animateColor(MaterialTheme.colorScheme.onBackground)
+                    MaterialTheme.colorScheme.onBackground.animate()
                 )
                 .padding(4.dp)
         ) {
             item {
                 TableRow(items = arrayOf("Символ", "Вероятность", "Код"), fontSize = 19.sp)
                 Divider(
-                    color = animateColor(MaterialTheme.colorScheme.onBackground),
+                    color = MaterialTheme.colorScheme.onBackground.animate(),
                     thickness = 1.5.dp
                 )
             }
 
-            items(sortedList.size) { index ->
-                val symbol = sortedList[index].symbol
-                val code = sortedList[index].code
+            items(symbolWithCodes.size) { index ->
+                val symbol = symbolWithCodes[index].symbol
+                val code = symbolWithCodes[index].code
                 TableRow(
                     items = arrayOf(symbol.name, symbol.probability.toString(), code),
                     fontSize = 16.sp
@@ -646,7 +705,7 @@ private fun LazyItemScope.TableRow(items: Array<String>, fontSize: TextUnit) {
             ) {
                 Text(
                     text = it,
-                    color = animateColor(MaterialTheme.colorScheme.onBackground),
+                    color = MaterialTheme.colorScheme.onBackground.animate(),
                     fontSize = fontSize,
                     textAlign = TextAlign.Center,
                     maxLines = 1

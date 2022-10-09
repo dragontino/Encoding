@@ -17,7 +17,10 @@ class EncodingRepository {
 
     suspend fun generateCodesByFano(text: String, considerGap: Boolean): List<SymbolWithCode> {
         val symbols = calculateProbabilities(text, considerGap)
-        return generateCodesByFano(symbols)
+        return if (symbols.size == 1)
+            listOf(SymbolWithCode(symbols[0], "1"))
+        else
+            generateCodesByFano(symbols)
     }
 
 
@@ -115,7 +118,7 @@ class EncodingRepository {
                 }
             }
 
-            return@supervisorScope result.sortedBy { it.code.length }
+            return@supervisorScope result.sortedByDescending { it }
         }
     }
 }
