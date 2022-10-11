@@ -1,6 +1,8 @@
 package com.mathematics.encoding.data.repository
 
 import android.util.Log
+import com.mathematics.encoding.compare
+import com.mathematics.encoding.countSigns
 import com.mathematics.encoding.presentation.model.*
 import com.mathematics.encoding.round
 import kotlinx.coroutines.Dispatchers
@@ -12,7 +14,6 @@ class EncodingRepository {
 
     private companion object {
         const val extraSymbols = ".,!?:;*()-—–\n"
-        const val countSigns = 3
     }
 
     suspend fun generateCodesByFano(text: String, considerGap: Boolean): List<SymbolWithCode> {
@@ -64,36 +65,40 @@ class EncodingRepository {
 
 
     private suspend fun createCodesByFano(symbolsMap: HashMap<Symbol, StringBuilder>): List<SymbolWithCodeBuilder> {
-        val arraySum = symbolsMap.keys.sumOf { it.probability }
+        val sumProbabilities = symbolsMap.keys.sumProbabilities
 
         fun f(x: Double): Double =
-            abs(2 * x - arraySum)
-
+            abs(2 * x - sumProbabilities)
 
 
         if (symbolsMap.size == 1) {
-            return symbolsMap.toSymbolWithCodeList()
+            return symbolsMap.toSymbolBuilderList()
         }
 
-        if (symbolsMap.size == 2) {
-            val keys = symbolsMap.keys.sortedBy { it.probability }
-            for (i in keys.indices)
-                symbolsMap.getOrDefault(keys[i], StringBuilder()).append(i)
+        val sortedList = symbolsMap.keys.sortedWith { s1, s2 ->
+            Log.d("EncodingRepository", "s1 = $s1 \ns2 = $s2")
+             if (s1.probability compare s2.probability != 0) {
+                Log.d("EncodingRepository", "Проверка")
+                s2.probability compare s1.probability
+            } else
+                s1.name.compareTo(s2.name)
+        }
 
-            return symbolsMap.toSymbolWithCodeList().sortedByDescending { it }
+        Log.d("EncodingRepository", "отсортированный массив = $sortedList")
+
+        if (symbolsMap.size == 2) {
+            sortedList.asReversed().forEachIndexed { index, symbol ->
+                symbolsMap.getOrDefault(symbol, StringBuilder()).append(index)
+            }
+            return symbolsMap.toSymbolBuilderList().sortedByDescending { it }
         }
 
         return supervisorScope {
-            val sortedList = symbolsMap.keys.sortedByDescending { it.probability }
             var sum = 0.0
             var idx = 0
 
-            while (true) {
-                if (idx == sortedList.size)
-                    break
-
+            while (idx < sortedList.size / 2) {
                 val currentProbability = sortedList[idx].probability
-                Log.d("EncodingRepository", "currentProbability = $currentProbability")
                 if (f(sum + currentProbability) < f(sum))
                     sum += currentProbability
                 else
@@ -102,10 +107,12 @@ class EncodingRepository {
                 idx++
             }
 
-            Log.d("EncodingRepository", "idx = $idx")
+            if (sortedList.size % 4 != 0 && sortedList.size % 2 == 0 && idx == sortedList.size / 2) {
+                idx--
+            }
 
             val firstPart = sortedList.subList(0, idx)
-            Log.d("EncodingRepository", "firstList item = ${firstPart[0]}")
+//            Log.d("EncodingRepository", "firstList item = ${firstPart[0]}")
             val secondPart = sortedList.subList(idx, sortedList.size)
             val result = ArrayList<SymbolWithCodeBuilder>()
 

@@ -23,6 +23,7 @@ import com.mathematics.encoding.EncodingApplication
 import com.mathematics.encoding.loadingTimeMillis
 import com.mathematics.encoding.presentation.theme.EncodingAppTheme
 import com.mathematics.encoding.presentation.theme.animate
+import com.mathematics.encoding.presentation.view.mainscreen.MainScreen
 import com.mathematics.encoding.presentation.viewmodel.EncodingViewModel
 import com.mathematics.encoding.presentation.viewmodel.SettingsViewModel
 import kotlinx.coroutines.delay

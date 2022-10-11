@@ -52,6 +52,16 @@ class EncodingViewModel(private val encodingRepository: EncodingRepository) : Vi
     }
 
 
+    fun deleteSymbol(index: Int) {
+        val array = symbols.value ?: emptyArray()
+        if (index < 0 || index >= array.size) return
+
+        symbolListLiveData.value =
+            array.sliceArray(0 until index) +
+                    array.sliceArray(index + 1 until array.size)
+    }
+
+
 
 
     suspend fun generateCodesByFano(symbols: List<Symbol>): List<SymbolWithCode> =

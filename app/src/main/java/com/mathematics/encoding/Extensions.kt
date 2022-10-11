@@ -13,6 +13,7 @@ import androidx.core.graphics.ColorUtils
 import com.mathematics.encoding.presentation.model.SymbolWithCode
 import java.math.BigDecimal
 import java.math.RoundingMode
+import kotlin.math.abs
 import kotlin.math.log2
 
 @ExperimentalMaterialApi
@@ -21,6 +22,7 @@ fun ModalBottomSheetState.isExpanded() =
 
 
 const val loadingTimeMillis = 400L
+const val countSigns = 3
 
 @ExperimentalMaterialApi
 fun ModalBottomSheetState.isHalfExpanded() =
@@ -28,12 +30,12 @@ fun ModalBottomSheetState.isHalfExpanded() =
 
 
 val List<SymbolWithCode>.averageCodeLength: Double
-get() = sumOf { it.code.length * it.symbol.probability }
+get() = sumOf { it.code.length * it.probability }
 
 
 val List<SymbolWithCode>.entropy: Double
 get() = fold(0.0) { sum, element ->
-    sum - element.symbol.probability * log2(element.symbol.probability)
+    sum - element.probability * log2(element.probability)
 }
 
 
@@ -71,4 +73,37 @@ fun showToast(context: Context, text: String, duration: Int = Toast.LENGTH_SHORT
 
 operator fun Color.plus(other: Color): Color {
     return Color(ColorUtils.blendARGB(this.toArgb(), other.toArgb(), 1f))
+}
+
+
+// Математические операции
+fun Double.toSimpleFraction(): Pair<Int, Int> {
+    var denominator = 1
+    while ((this * denominator) % 1 != 0.0) {
+        denominator *= 10
+    }
+    val numerator = (this * denominator).toInt()
+    val gcd = numerator gcd denominator
+    return Pair(
+        first = numerator / gcd,
+        second = denominator / gcd
+    )
+}
+
+infix fun Int.lcm(n: Int): Int =
+    abs(this * n) / (this gcd n)
+
+infix fun Int.gcd(n: Int): Int =
+    if (n <= 0) this
+    else n gcd this % n
+
+infix fun Double.compare(other: Double): Int {
+    val firstFraction = this.toSimpleFraction()
+    val secondFraction = other.toSimpleFraction()
+    val commonDenominator = firstFraction.second lcm secondFraction.second
+    return (firstFraction * commonDenominator).compareTo(secondFraction * commonDenominator)
+}
+
+private operator fun Pair<Int, Int>.times(n: Int): Int {
+    return first * n / second
 }
