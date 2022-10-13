@@ -1,10 +1,9 @@
 package com.mathematics.encoding.data.repository
 
 import android.util.Log
-import com.mathematics.encoding.compare
-import com.mathematics.encoding.countSigns
+import com.mathematics.encoding.data.support.countSigns
+import com.mathematics.encoding.data.support.round
 import com.mathematics.encoding.presentation.model.*
-import com.mathematics.encoding.round
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
@@ -18,30 +17,35 @@ class EncodingRepository {
 
     suspend fun generateCodesByFano(text: String, considerGap: Boolean): List<SymbolWithCode> {
         val symbols = calculateProbabilities(text, considerGap)
-        return if (symbols.size == 1)
-            listOf(SymbolWithCode(symbols[0], "1"))
-        else
-            generateCodesByFano(symbols)
+        return when {
+            symbols == null -> emptyList()
+            symbols.size == 1 -> listOf(SymbolWithCode(symbols[0], "1"))
+            else -> generateCodesByFano(symbols)
+        }
     }
 
 
     suspend fun generateCodesByFano(symbols: List<Symbol>): List<SymbolWithCode> {
         val hashMap = HashMap<Symbol, StringBuilder>()
         symbols.forEach {
+            it.name = it.name.uppercase()
             if (it.probability != 0.0)
                 hashMap[it] = StringBuilder()
         }
-        return createCodesByFano(hashMap).map { it.toSymbolWithCode() }
+        return createCodesByFano(hashMap).map { it.build() }
     }
 
 
 
-    private fun calculateProbabilities(text: String, considerGap: Boolean): List<Symbol> {
+    private fun calculateProbabilities(text: String, considerGap: Boolean): List<Symbol>? {
         var result = text
         for (c in extraSymbols)
             result = result.replace(c.toString(), "")
 
         if (!considerGap) result = result.replace(" ", "")
+
+        if (result.isBlank())
+            return null
 
         return result
             .map {
@@ -75,14 +79,7 @@ class EncodingRepository {
             return symbolsMap.toSymbolBuilderList()
         }
 
-        val sortedList = symbolsMap.keys.sortedWith { s1, s2 ->
-            Log.d("EncodingRepository", "s1 = $s1 \ns2 = $s2")
-             if (s1.probability compare s2.probability != 0) {
-                Log.d("EncodingRepository", "Проверка")
-                s2.probability compare s1.probability
-            } else
-                s1.name.compareTo(s2.name)
-        }
+        val sortedList = symbolsMap.keys.sorted()
 
         Log.d("EncodingRepository", "отсортированный массив = $sortedList")
 
@@ -116,7 +113,9 @@ class EncodingRepository {
             val secondPart = sortedList.subList(idx, sortedList.size)
             val result = ArrayList<SymbolWithCodeBuilder>()
 
-            for ((i, arr) in arrayOf(secondPart, firstPart).withIndex()) {
+
+
+            for ((i, arr) in arrayOf(secondPart, firstPart).withIndex().reversed()) {
                 arr.forEach { symbolsMap.getOrDefault(it, StringBuilder()).append(i) }
 
                 result += withContext(Dispatchers.Default) {
@@ -125,7 +124,8 @@ class EncodingRepository {
                 }
             }
 
-            return@supervisorScope result.sortedByDescending { it }
+//            result.sortDescending()
+            return@supervisorScope result
         }
     }
 }

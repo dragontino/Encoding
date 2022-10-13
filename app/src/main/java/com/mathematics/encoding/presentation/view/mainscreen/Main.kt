@@ -1,24 +1,21 @@
 package com.mathematics.encoding.presentation.view.mainscreen
 
-import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyItemScope
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetLayout
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Settings
@@ -31,32 +28,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.liveData
-import com.mathematics.encoding.*
+import com.mathematics.encoding.EncodingApplication
 import com.mathematics.encoding.R
 import com.mathematics.encoding.data.repository.EncodingRepository
+import com.mathematics.encoding.data.support.*
 import com.mathematics.encoding.presentation.model.*
-import com.mathematics.encoding.presentation.theme.*
+import com.mathematics.encoding.presentation.theme.EncodingAppTheme
+import com.mathematics.encoding.presentation.theme.animate
+import com.mathematics.encoding.presentation.theme.mediumCornerSize
 import com.mathematics.encoding.presentation.view.BottomSheet
-import com.mathematics.encoding.presentation.view.ConfirmDialog
 import com.mathematics.encoding.presentation.view.Settings
 import com.mathematics.encoding.presentation.view.Themes
 import com.mathematics.encoding.presentation.viewmodel.EncodingViewModel
@@ -66,6 +59,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+
 
 @ExperimentalAnimationApi
 @ExperimentalComposeUiApi
@@ -88,15 +82,18 @@ fun MainScreen(
     val context = LocalContext.current
     val sheetState =
         rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
+    val lazyListState = rememberLazyListState()
 
     var isLoading by remember { mutableStateOf(false) }
 
 
     var sheetContent: @Composable () -> Unit by remember { mutableStateOf({}) }
 
-    val closeBottomSheet = {
-        scope.launch { sheetState.close() }
-    }
+
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val interactionSource = remember { MutableInteractionSource() }
+
+    var isAnimationRunning by remember { mutableStateOf(false) }
 
     fun openBottomSheet(title: String = "", content: @Composable ColumnScope.() -> Unit) {
         sheetContent = {
@@ -104,6 +101,58 @@ fun MainScreen(
         }
         scope.launch { sheetState.open() }
     }
+
+    val closeBottomSheet = {
+        scope.launch { sheetState.close() }
+    }
+
+
+    var inputtedText by rememberSaveable { mutableStateOf("") }
+
+    fun showResult() {
+        if (settings.autoInputProbabilities) {
+            when {
+                inputtedText.isBlank() -> {
+                    showToast(context, "Введите текст!")
+                    return
+                }
+                inputtedText.find {
+                    it.toString()
+                        .matches(Regex("[^\\da-zA-Zа-яёА-ЯЁ(.*\\\\!)?\n ]"))
+                } != null -> {
+                    showToast(context, "Введите корректные символы!")
+                    return
+                }
+                resultList.isEmpty() -> {
+                    scope.launch(Dispatchers.Default) {
+                        resultList = encodingViewModel
+                            .generateCodesByFano(inputtedText, settings.considerGap)
+                    }
+                }
+            }
+        } else {
+            val errorSymbol = symbols.find { it.hasError }
+            when {
+                errorSymbol != null -> {
+                    showToast(context, errorSymbol.error)
+                    return
+                }
+                abs(symbols.sumProbabilities - 1) > 0.005 -> {
+                    showToast(context, "Сумма вероятностей должна равнятся 1")
+                    return
+                }
+                resultList.isEmpty() -> {
+                    scope.launch(Dispatchers.Default) {
+                        resultList = encodingViewModel
+                            .generateCodesByFano(symbols.toList())
+                    }
+                }
+            }
+        }
+
+        openBottomSheet { CodesList(resultList) }
+    }
+
 
     when {
         sheetState.isExpanded() -> updateStatusBarColor(MaterialTheme.colorScheme.background)
@@ -129,10 +178,10 @@ fun MainScreen(
     }
 
 
-    val bottomSheetCornerSize = animateDpAsState(
+    val bottomSheetCornerSize by animateDpAsState(
         targetValue = if (sheetState.isExpanded()) 0.dp else mediumCornerSize,
         animationSpec = spring(stiffness = Spring.StiffnessMedium)
-    ).value
+    )
 
     val bottomSheetBorderColor =
         if (sheetState.isExpanded()) Color.Transparent
@@ -190,7 +239,12 @@ fun MainScreen(
                     navigationIcon = {
                         IconButton(
                             onClick = {
-                                openBottomSheet("Настройки") { Settings(settingsViewModel) }
+                                openBottomSheet("Настройки") {
+                                    Settings(
+                                        settingsViewModel,
+                                        isSwitchEnabled = !isAnimationRunning
+                                    )
+                                }
                             }
                         ) {
                             Icon(Icons.Rounded.Settings, contentDescription = "settings")
@@ -224,31 +278,55 @@ fun MainScreen(
             },
             floatingActionButton = {
                 AnimatedVisibility(
-                    visible = !settings.autoInputProbabilities,
-                    enter = scaleIn(),
-                    exit = scaleOut()
+                    visible = !lazyListState.isScrollInProgress,
+                    enter = scaleIn(
+                        transformOrigin = TransformOrigin(0.5f, 1f),
+                        animationSpec = spring(stiffness = Spring.StiffnessVeryLow)
+                    ) + slideInVertically(
+                        animationSpec = spring(stiffness = Spring.StiffnessLow)
+                    ) { it / 2 },
+                    exit = scaleOut(
+                        transformOrigin = TransformOrigin(0.5f, 1f),
+                        animationSpec = spring(stiffness = Spring.StiffnessMedium)
+                    ) + slideOutVertically(
+                        animationSpec = spring(stiffness = Spring.StiffnessMedium)
+                    ) { it / 2 }
                 ) {
-                    FloatingActionButton(
-                        onClick = {
-                            resultList = emptyList()
-                            encodingViewModel.addSymbol(Symbol())
+                    ExtendedFloatingActionButton(
+                        text = {
+                            Text(
+                                text = stringResource(R.string.calculate_codes),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
                         },
-                        shape = RoundedCornerShape(mediumCornerSize),
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Outlined.Calculate,
+                                contentDescription = "add symbol",
+                            )
+                        },
+                        onClick = { showResult() },
                         containerColor = MaterialTheme.colorScheme.primary.animate(),
-                        contentColor = MaterialTheme.colorScheme.onPrimary.animate()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = "add symbol",
-                            modifier = Modifier.scale(1.3f)
-                        )
-                    }
+                        contentColor = MaterialTheme.colorScheme.onPrimary.animate(),
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .border(
+                                width = 1.1.dp,
+                                color = MaterialTheme.colorScheme.onBackground.animate(),
+                                shape = FloatingActionButtonDefaults.extendedFabShape,
+                            )
+                    )
                 }
             },
-            floatingActionButtonPosition = FabPosition.End,
+            floatingActionButtonPosition = FabPosition.Center,
             containerColor = MaterialTheme.colorScheme.background.animate(),
             contentWindowInsets = WindowInsets(2.dp),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = { keyboardController?.hide() })
+                .fillMaxSize()
         ) { contentPadding ->
 
             AnimatedVisibility(
@@ -276,29 +354,21 @@ fun MainScreen(
 
             AnimatedVisibility(
                 visible = settings.autoInputProbabilities,
-                enter = expandHorizontally(spring(stiffness = Spring.StiffnessLow)),
-                exit = shrinkHorizontally(spring(stiffness = Spring.StiffnessLow)),
+                enter = slideInHorizontally(spring(stiffness = Spring.StiffnessLow)),
+                exit = slideOutHorizontally(spring(stiffness = Spring.StiffnessLow)) { it },
                 modifier = Modifier.padding(contentPadding)
             ) {
+                isAnimationRunning = this.transition.isRunning
+
                 TextInput(
                     considerGap = settings.considerGap,
                     updateConsiderGap = settingsViewModel::updateConsiderGap,
-                    onValueChange = {
-                        if (resultList.isNotEmpty()) resultList = emptyList()
+                    onTextChange = { text ->
+                        inputtedText = text
+                        resultList = emptyList()
                     },
-                    calculateCodes = { text ->
-                        if (text.isBlank()) {
-                            showToast(context, "Введите текст!")
-                            return@TextInput
-                        }
-
-                        if (resultList.isEmpty()) {
-                            scope.launch(Dispatchers.Default) {
-                                resultList = encodingViewModel
-                                    .generateCodesByFano(text, settings.considerGap)
-                            }
-                        }
-                        openBottomSheet { CodesList(resultList) }
+                    onCheckedChange = {
+                        if (resultList.isNotEmpty()) resultList = emptyList()
                     }
                 )
             }
@@ -306,14 +376,19 @@ fun MainScreen(
 
             AnimatedVisibility(
                 visible = !settings.autoInputProbabilities,
-                enter = expandHorizontally(spring(stiffness = Spring.StiffnessLow)),
-                exit = shrinkHorizontally(spring(stiffness = Spring.StiffnessLow)),
+                enter = slideInHorizontally(spring(stiffness = Spring.StiffnessLow)),
+                exit = slideOutHorizontally(spring(stiffness = Spring.StiffnessLow)) { it },
                 modifier = Modifier.padding(contentPadding)
             ) {
-                EncodingItems(
+                isAnimationRunning = this.transition.isRunning
+
+                SymbolsInput(
                     symbols = symbols,
-                    onChangeValue = {
+                    listState = lazyListState,
+                    onChangeValue = { resultList = emptyList() },
+                    addSymbol = {
                         resultList = emptyList()
+                        encodingViewModel.addSymbol(Symbol())
                     },
                     deleteSymbol = { index ->
                         if (symbols.size >= settings.startCount) {
@@ -321,489 +396,11 @@ fun MainScreen(
                             encodingViewModel.deleteSymbol(index)
                         }
                     }
-                ) {
-                    BottomButtons(
-                        deleteElements = {
-                            if (symbols.size > 2) {
-                                closeBottomSheet()
-                                resultList = emptyList()
-                                encodingViewModel.deleteSymbolsFromLast()
-                            }
-                        },
-                        addElements = {
-                            resultList = emptyList()
-                            encodingViewModel.addSymbol(Symbol())
-                        },
-                        calculateCodes = {
-//                            if (symbols.find { it.frequency > 1 || it.frequency < 0 } != null) {
-//                                showToast(context, "Некорректные вероятности!")
-//                                return@BottomButtons
-//                            } //else
-                            val errorSymbol = symbols.find { it.hasError }
-                            if (errorSymbol != null) {
-                                showToast(context, errorSymbol.error)
-                                return@BottomButtons
-                            }
-
-                            if (abs(symbols.sumProbabilities - 1) > 0.005) {
-                                showToast(context, "Сумма вероятностей должна равнятся 1")
-                                return@BottomButtons
-                            }
-
-                            if (resultList.isEmpty()) {
-                                scope.launch(Dispatchers.Default) {
-                                    resultList = encodingViewModel
-                                        .generateCodesByFano(symbols.toList())
-                                }
-                            }
-                            openBottomSheet { CodesList(resultList) }
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-
-
-
-@ExperimentalAnimationApi
-@ExperimentalMaterialApi
-@ExperimentalComposeUiApi
-@ExperimentalFoundationApi
-@ExperimentalMaterial3Api
-@Composable
-private fun EncodingItems(
-    symbols: Array<Symbol>,
-    modifier: Modifier = Modifier,
-    onChangeValue: (value: String) -> Unit = {},
-    deleteSymbol: (index: Int) -> Unit = {},
-    itemsAfter: @Composable LazyItemScope.() -> Unit = {}
-) {
-    var indexOfSymbol by rememberSaveable { mutableStateOf(-1) }
-    var showDialog by remember { mutableStateOf(false) }
-//    val scope = rememberCoroutineScope()
-
-//    val updateFrequencies = {
-//        scope.launch {
-//            val frequencies = symbols.map { it.probability }.calculateFrequencies()
-//            symbols.forEachIndexed { index, symbol ->
-//                symbol.frequency = frequencies[index]
-//            }
-//        }
-//    }
-
-    fun badNameMessage(name: String, index: Int): String = when {
-        name.isBlank() -> "Пустой символ в строке ${index + 1}"
-        symbols
-            .indexOfFirst { it.name == name }
-            .let { it != index && it != -1 } -> "Символ «$name» уже существует!"
-        else -> ""
-    }
-
-    fun badProbabilityMessage(probability: Double, index: Int): String =
-        if (probability < 0 || probability > 1)
-            "Некорректная вероятность в строке ${index + 1}"
-        else ""
-
-
-    AnimatedVisibility(
-        visible = showDialog,
-        enter = scaleIn() + fadeIn(),
-        exit = scaleOut() + fadeOut()
-    ) {
-        ConfirmDialog(
-//        dialogState = dialogState,
-            text = buildString {
-                val name = symbols.getOrNull(indexOfSymbol)?.name
-                val text =
-                    if (name == null) "на позиции «${indexOfSymbol + 1}»"
-                    else "«$name»"
-
-                append("Вы собираетесь удалить элемент ")
-                append("$text.")
-                append("\nПродолжить?")
-            },
-            closeDialog = { showDialog = false },
-            onConfirm = {
-                showDialog = false
-                deleteSymbol(indexOfSymbol)
-            }
-        )
-    }
-
-
-    LazyColumn(
-        modifier = modifier.fillMaxWidth()
-    ) {
-        itemsIndexed(symbols) { index, symbol ->
-            EncodingItem(
-                symbol = symbol.apply {
-                    nameError = badNameMessage(name, index)
-                    probabilityError = badProbabilityMessage(probability, index)
-                },
-                isLast = index == symbols.lastIndex,
-                badName = { name ->
-                    badNameMessage(name, index)
-                        .also { symbol.nameError = it }
-                        .isNotBlank()
-                },
-                onChangeName = onChangeValue,
-                badProbability = { probabilityString ->
-                    with(probabilityString.toDoubleOrNull() ?: -1.0) {
-                        badProbabilityMessage(this, index)
-                            .also { symbol.probabilityError = it }
-                            .isNotBlank()
-                    }
-                },
-                onChangeProbability = {
-                    onChangeValue(it.toString())
-                },
-                modifier = Modifier
-                    .combinedClickable(
-                        onLongClick = {
-                            // TODO: заменить на startCount
-                            if (symbols.size > 2) {
-                                indexOfSymbol = index
-                                // TODO: не забыть вернуть
-//                                showDialog = true
-                            }
-                        },
-                        onClick = {}
-                    )
-                    .animateContentSize(spring(stiffness = Spring.StiffnessLow))
-                    .animateItemPlacement(spring(stiffness = Spring.StiffnessLow))
-            )
-        }
-
-        item(content = itemsAfter)
-    }
-}
-
-@ExperimentalComposeUiApi
-@ExperimentalMaterial3Api
-@Composable
-private fun EncodingItem(
-    symbol: Symbol,
-    isLast: Boolean,
-    modifier: Modifier = Modifier,
-    badName: (String) -> Boolean,
-    onChangeName: (String) -> Unit = {},
-    badProbability: (String) -> Boolean,
-    onChangeProbability: (Double) -> Unit = {}
-) {
-    var isErrorProbability by remember { mutableStateOf(false) }
-    var isErrorName by remember { mutableStateOf(false) }
-
-    Log.d("MainScreen", "symbol = $symbol")
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .padding(16.dp)
-            .fillMaxWidth(),
-    ) {
-        OutlinedField(
-            text = symbol.name,
-            isError = isErrorName,
-            placeholderText = stringResource(R.string.symbol),
-            onTextChange = {
-                isErrorName = badName(it)
-                if (!isErrorName) {
-                    symbol.name = it
-                    onChangeName(it)
-                }
-            }
-        )
-
-        Text(
-            "=",
-            color = MaterialTheme.colorScheme.onBackground.animate(),
-            fontSize = 20.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-
-        val stringProbability = when {
-            symbol.probability < 0 -> ""
-            symbol.probability % 1 == 0.0 -> symbol.probability.toInt().toString()
-            else -> symbol.probability.toString()
-        }
-
-        OutlinedField(
-            text = stringProbability,
-            placeholderText = "Вероятность",
-            isError = isErrorProbability,
-            keyboardType = KeyboardType.Decimal,
-            imeAction = if (isLast) ImeAction.Done else ImeAction.Next,
-            onTextChange = {
-                isErrorProbability = badProbability(it)
-                if (!isErrorProbability) {
-                    symbol.probability = it.toDouble()
-                    onChangeProbability(it.toDouble())
-                }
-
-//                it.toDoubleOrNull()?.let { probability ->
-//                    symbol.frequency = (probability * countItems).roundToInt()
-//                    if (it.isEmpty())
-//                        onChangeProbability(0)
-//                    else
-//                        onChangeProbability(symbol.frequency)
-//                } ?: onChangeProbability(null)
-            },
-        )
-    }
-}
-
-@ExperimentalMaterial3Api
-@Composable
-private fun RowScope.OutlinedField(
-    text: String,
-    placeholderText: String = "",
-    isError: Boolean = false,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    imeAction: ImeAction = ImeAction.Next,
-    onTextChange: (String) -> Unit
-) {
-    var savedText by remember { mutableStateOf(text) }
-    val focusManager = LocalFocusManager.current
-
-    Log.d("MainScreen", "text = $text")
-
-    OutlinedTextField(
-        value = savedText,
-        onValueChange = {
-            savedText = it
-            onTextChange(it)
-        },
-        placeholder = {
-            Text(
-                placeholderText,
-                fontFamily = FontFamily(RobotoFont),
-                fontSize = 16.sp
-            )
-        },
-        textStyle = MaterialTheme.typography.bodyMedium,
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
-        keyboardActions = KeyboardActions(
-            onNext = { focusManager.moveFocus(FocusDirection.Next) },
-            onDone = { focusManager.clearFocus() }
-        ),
-        colors = TextFieldDefaults.outlinedTextFieldColors(
-            textColor = MaterialTheme.colorScheme.onBackground.animate(),
-            containerColor = MaterialTheme.colorScheme.primaryContainer.animate(),
-            placeholderColor = MaterialTheme.colorScheme.onBackground
-                .copy(alpha = 0.6f)
-                .animate(),
-            focusedBorderColor = MaterialTheme.colorScheme.primary.animate(),
-            disabledBorderColor = MaterialTheme.colorScheme.primary.animate(),
-            unfocusedBorderColor = MaterialTheme.colorScheme.primary.animate(),
-            errorBorderColor = MaterialTheme.colorScheme.error.animate(),
-            errorCursorColor = MaterialTheme.colorScheme.error.animate()
-        ),
-        isError = isError,
-        shape = RoundedCornerShape(10.dp),
-        modifier = Modifier.weight(1f)
-    )
-}
-
-
-
-
-
-@ExperimentalMaterialApi
-@Composable
-private fun BottomButtons(
-    deleteElements: (() -> Unit)? = null,
-    addElements: (() -> Unit)? = null,
-    calculateCodes: (() -> Unit)? = null
-) {
-//    Row(
-//        modifier = Modifier
-//            .padding(top = 16.dp, bottom = 8.dp)
-//            .fillMaxWidth()
-//    ) {
-//        if (deleteElements != null) {
-//            TextButton(
-//                text = "Удалить элемент",
-//                shape = RoundedCornerShape(
-//                    topStart = mediumCornerSize,
-//                    bottomStart = mediumCornerSize,
-//                    topEnd = smallCornerSize,
-//                    bottomEnd = smallCornerSize
-//                ),
-//                modifier = Modifier
-//                    .padding(start = 8.dp, end = 6.dp)
-//                    .weight(1f),
-//                onClick = deleteElements
-//            )
-//        }
-//
-////        TextButton(
-////            text = "Очистить значения",
-////            shape = RoundedCornerShape(smallCornerSize),
-////            modifier = Modifier.weight(1f)
-////        ) {
-////            closeBottomSheet()
-////            resultList = emptyList()
-////            encodingViewModel.clearSymbols(settings.startCount)
-////        }
-//
-//        if (addElements != null) {
-//            TextButton(
-//                text = "Добавить элемент",
-//                shape = RoundedCornerShape(
-//                    topEnd = mediumCornerSize,
-//                    bottomEnd = mediumCornerSize,
-//                    topStart = smallCornerSize,
-//                    bottomStart = smallCornerSize
-//                ),
-//                onClick = addElements,
-//                modifier = Modifier
-//                    .padding(end = 8.dp, start = 6.dp)
-//                    .weight(1f)
-//            )
-//        }
-//    }
-
-    if (calculateCodes != null) {
-        TextButton(
-            text = stringResource(R.string.calculate_codes),
-            shape = RoundedCornerShape(mediumCornerSize),
-            onClick = calculateCodes,
-            modifier = Modifier
-                .padding(horizontal = 8.dp)
-                .fillMaxWidth()
-        )
-    }
-}
-
-
-
-
-@Composable
-internal fun TextButton(
-    text: String,
-    modifier: Modifier = Modifier,
-    shape: Shape = RectangleShape,
-    onClick: () -> Unit
-) {
-    TextButton(
-        onClick = onClick,
-        shape = shape,
-        colors = ButtonDefaults.textButtonColors(
-            containerColor = MaterialTheme.colorScheme.primary.animate(),
-            contentColor = MaterialTheme.colorScheme.onPrimary.animate()
-        ),
-        modifier = modifier,
-        border = BorderStroke(
-            1.2.dp,
-            MaterialTheme.colorScheme.onBackground.animate()
-        ),
-    ) {
-        Text(text = text, fontSize = 16.sp, textAlign = TextAlign.Center)
-    }
-}
-
-
-
-
-
-
-@ExperimentalFoundationApi
-@Composable
-private fun CodesList(symbolWithCodes: List<SymbolWithCode>, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .background(
-                color = MaterialTheme.colorScheme.background.animate(),
-                shape = RoundedCornerShape(smallCornerSize)
-            )
-            .padding(9.dp)
-            .fillMaxWidth()
-    ) {
-        Text(
-            "Средняя длина кода = ${symbolWithCodes.averageCodeLength.round(2)}",
-            fontSize = MaterialTheme.typography.labelSmall.fontSize,
-            fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-            color = MaterialTheme.colorScheme.onBackground.animate(),
-            modifier = Modifier.padding(top = 8.dp, bottom = 2.dp, start = 6.dp)
-        )
-        Text(
-            "Энтропия = ${symbolWithCodes.entropy.round(2)}",
-            fontSize = MaterialTheme.typography.labelSmall.fontSize,
-            fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-            color = MaterialTheme.colorScheme.onBackground.animate(),
-            modifier = Modifier.padding(bottom = 8.dp, top = 2.dp, start = 6.dp)
-        )
-
-        LazyColumn(
-            Modifier
-                .border(
-                    1.5.dp,
-                    MaterialTheme.colorScheme.onBackground.animate()
-                )
-                .padding(4.dp)
-        ) {
-            item {
-                TableRow(items = arrayOf("Символ", "Вероятность", "Код"), fontSize = 19.sp)
-                Divider(
-                    color = MaterialTheme.colorScheme.onBackground.animate(),
-                    thickness = 1.5.dp
-                )
-            }
-
-            items(symbolWithCodes.size) { index ->
-                val symbol = symbolWithCodes[index]
-                TableRow(
-                    items = arrayOf(
-                        symbol.symbolName,
-                        symbol.probability.toString(),
-                        symbol.code
-                    ),
-                    fontSize = 16.sp
                 )
             }
         }
     }
 }
-
-
-
-
-@ExperimentalFoundationApi
-@Composable
-private fun LazyItemScope.TableRow(items: Array<String>, fontSize: TextUnit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .animateContentSize(spring(stiffness = Spring.StiffnessVeryLow))
-            .animateItemPlacement(spring(stiffness = Spring.StiffnessVeryLow))
-            .padding(vertical = 8.dp)
-            .fillMaxWidth(),
-    ) {
-        items.forEach {
-            SelectionContainer(
-                modifier = Modifier
-                    .padding(horizontal = 0.dp)
-                    .weight(1f)
-            ) {
-                Text(
-                    text = it,
-                    color = MaterialTheme.colorScheme.onBackground.animate(),
-                    fontSize = fontSize,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1
-                )
-            }
-        }
-    }
-}
-
-
 
 
 
@@ -828,20 +425,4 @@ private fun DefaultPreview() {
             theme = theme
         )
     }
-}
-
-@ExperimentalFoundationApi
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-private fun CodesListPreview() {
-    EncodingAppTheme(settings = liveData { emit(Settings()) }) {
-        CodesList(
-            symbolWithCodes = listOf(
-                SymbolWithCode("A", 0.3, "01"),
-                SymbolWithCode("B", 0.5, "1"),
-                SymbolWithCode("C", 0.2, "00")
-            ),
-        )
-    }
-
 }

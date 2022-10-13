@@ -20,7 +20,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.mathematics.encoding.EncodingApplication
-import com.mathematics.encoding.loadingTimeMillis
+import com.mathematics.encoding.data.support.loadingTimeMillis
 import com.mathematics.encoding.presentation.theme.EncodingAppTheme
 import com.mathematics.encoding.presentation.theme.animate
 import com.mathematics.encoding.presentation.view.mainscreen.MainScreen

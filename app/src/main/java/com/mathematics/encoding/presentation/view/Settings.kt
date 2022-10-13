@@ -35,19 +35,9 @@ import com.mathematics.encoding.presentation.viewmodel.SettingsViewModel
 @ExperimentalMaterialApi
 @ExperimentalAnimationApi
 @Composable
-fun ColumnScope.Settings(settingsViewModel: SettingsViewModel) {
+fun ColumnScope.Settings(settingsViewModel: SettingsViewModel, isSwitchEnabled: Boolean = true) {
     val settings by settingsViewModel.currentSettings.observeAsState(Settings())
-//    val dialogState = rememberDialogState(stiffness = Spring.StiffnessLow)
-//    val scope = rememberCoroutineScope()
-
     var showDialog by remember { mutableStateOf(false) }
-//    val showDialog = {
-//        scope.launch { dialogState.show() }
-//    }
-//
-//    val hideDialog = {
-//        scope.launch { dialogState.hide() }
-//    }
 
 
     AnimatedVisibility(
@@ -56,15 +46,11 @@ fun ColumnScope.Settings(settingsViewModel: SettingsViewModel) {
         exit = scaleOut() + fadeOut()
     ) {
         ThemeDialog(
-//        dialogState = dialogState,
             theme = settings.theme,
             onDismiss = { showDialog = false },
             updateTheme = settingsViewModel::updateTheme
         )
     }
-
-
-
 
 
     Row(
@@ -113,7 +99,8 @@ fun ColumnScope.Settings(settingsViewModel: SettingsViewModel) {
         checked = settings.autoInputProbabilities,
         onCheckedChange = {
             settingsViewModel.updateAutoInputProbabilities(it) //{ autoInputProbabilities = it }
-        }
+        },
+        enabled = isSwitchEnabled
     )
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -149,20 +136,22 @@ fun ColumnScope.Settings(settingsViewModel: SettingsViewModel) {
 private fun SwitchItem(
     text: @Composable ColumnScope.(TextStyle) -> Unit,
     checked: Boolean,
+    enabled: Boolean = true,
     onCheckedChange: (checked: Boolean) -> Unit
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceAround,
         modifier = Modifier
-            .clickable { onCheckedChange(!checked) }
+            .clickable {
+                if (enabled) onCheckedChange(!checked)
+            }
             .background(MaterialTheme.colorScheme.background.animate())
             .padding(16.dp)
             .fillMaxWidth(),
     ) {
         Column(
             modifier = Modifier
-//                .padding(vertical = 16.dp)
                 .padding(start = 4.dp, end = 20.dp)
                 .weight(2f),
         ) {
@@ -177,6 +166,7 @@ private fun SwitchItem(
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
+            enabled = enabled,
             thumbContent = {
                 Icon(
                     imageVector = if (checked) Icons.Rounded.Check else Icons.Rounded.Close,

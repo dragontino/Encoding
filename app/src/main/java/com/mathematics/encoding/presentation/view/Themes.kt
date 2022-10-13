@@ -1,6 +1,5 @@
 package com.mathematics.encoding.presentation.view
 
-import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -54,7 +53,7 @@ private fun ColumnScope.ThemeItem(
     Row(
         modifier = Modifier
             .clickable(onClick = onClick)
-            .background(color = backgroundColor.animate(stiffness = Spring.StiffnessMedium))
+            .background(color = backgroundColor.animate())
             .align(Alignment.CenterHorizontally)
             .fillMaxWidth()
     ) {
