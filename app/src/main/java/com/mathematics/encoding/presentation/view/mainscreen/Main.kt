@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
@@ -54,10 +55,7 @@ import com.mathematics.encoding.presentation.view.Settings
 import com.mathematics.encoding.presentation.view.Themes
 import com.mathematics.encoding.presentation.viewmodel.EncodingViewModel
 import com.mathematics.encoding.presentation.viewmodel.SettingsViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlin.math.abs
 
 
@@ -92,6 +90,7 @@ fun MainScreen(
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val interactionSource = remember { MutableInteractionSource() }
+    val focusManager = LocalFocusManager.current
 
     var isAnimationRunning by remember { mutableStateOf(false) }
 
@@ -112,14 +111,17 @@ fun MainScreen(
     fun showResult() {
         if (settings.autoInputProbabilities) {
             when {
-                inputtedText.isBlank() -> {
+                inputtedText.isEmpty() || (inputtedText.isBlank() && !settings.considerGap) -> {
                     showToast(context, "Введите текст!")
                     return
                 }
-                inputtedText.find {
-                    it.toString()
-                        .matches(Regex("[^\\da-zA-Zа-яёА-ЯЁ(.*\\\\!)?\n ]"))
-                } != null -> {
+                !inputtedText.all { it.isDigit() || it.isLetter() || it in "!.,?!\n " } -> {
+                    showToast(context, "Удалите некорректные символы!")
+                    return
+                }
+                !inputtedText.any {
+                    it.isDigit() || it.isLetter() || (settings.considerGap && it == ' ')
+                } -> {
                     showToast(context, "Введите корректные символы!")
                     return
                 }
@@ -325,7 +327,10 @@ fun MainScreen(
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
-                    onClick = { keyboardController?.hide() })
+                    onClick = {
+                        keyboardController?.hide()
+                        focusManager.clearFocus()
+                    })
                 .fillMaxSize()
         ) { contentPadding ->
 

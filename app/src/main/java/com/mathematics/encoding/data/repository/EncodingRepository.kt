@@ -1,6 +1,5 @@
 package com.mathematics.encoding.data.repository
 
-import android.util.Log
 import com.mathematics.encoding.data.support.countSigns
 import com.mathematics.encoding.data.support.round
 import com.mathematics.encoding.presentation.model.*
@@ -11,14 +10,10 @@ import kotlin.math.abs
 
 class EncodingRepository {
 
-    private companion object {
-        const val extraSymbols = ".,!?:;*()-—–\n"
-    }
-
     suspend fun generateCodesByFano(text: String, considerGap: Boolean): List<SymbolWithCode> {
         val symbols = calculateProbabilities(text, considerGap)
         return when {
-            symbols == null -> emptyList()
+            symbols.isEmpty() -> emptyList()
             symbols.size == 1 -> listOf(SymbolWithCode(symbols[0], "1"))
             else -> generateCodesByFano(symbols)
         }
@@ -27,31 +22,25 @@ class EncodingRepository {
 
     suspend fun generateCodesByFano(symbols: List<Symbol>): List<SymbolWithCode> {
         val hashMap = HashMap<Symbol, StringBuilder>()
-        symbols.forEach {
-            it.name = it.name.uppercase()
-            if (it.probability != 0.0)
-                hashMap[it] = StringBuilder()
+        symbols.forEach { symbol ->
+            symbol.name = symbol.name.uppercase()
+            if (symbol.probability != 0.0)
+                hashMap[symbol] = StringBuilder()
         }
         return createCodesByFano(hashMap).map { it.build() }
     }
 
 
 
-    private fun calculateProbabilities(text: String, considerGap: Boolean): List<Symbol>? {
-        var result = text
-        for (c in extraSymbols)
-            result = result.replace(c.toString(), "")
+    private fun calculateProbabilities(text: String, considerGap: Boolean): List<Symbol> {
+        val filteredText = text.filter {
+            it.isDigit() || it.isLetter() || (considerGap && it == ' ')
+        }
 
-        if (!considerGap) result = result.replace(" ", "")
-
-        if (result.isBlank())
-            return null
-
-        return result
+        return filteredText
+            .ifEmpty { return emptyList() }
             .map {
                 when (it) {
-                    'ё' -> 'е'
-                    'ъ' -> 'ь'
                     ' ' -> '⎵'
                     else -> it
                 }.uppercase()
@@ -61,7 +50,7 @@ class EncodingRepository {
             .map {
                 Symbol(
                     name = it.key,
-                    probability = (it.value.toDouble() / result.length).round(countSigns)
+                    probability = (it.value.toDouble() / filteredText.length).round(countSigns)
                 )
             }
     }
@@ -80,8 +69,6 @@ class EncodingRepository {
         }
 
         val sortedList = symbolsMap.keys.sorted()
-
-        Log.d("EncodingRepository", "отсортированный массив = $sortedList")
 
         if (symbolsMap.size == 2) {
             sortedList.asReversed().forEachIndexed { index, symbol ->

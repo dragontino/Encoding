@@ -18,6 +18,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -39,6 +40,7 @@ internal fun AnimatedVisibilityScope.TextInput(
     var isShowKeyboard by remember { mutableStateOf(false) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
 
     val showKeyboard = {
         keyboardController?.show()
@@ -46,6 +48,7 @@ internal fun AnimatedVisibilityScope.TextInput(
     }
 
     val hideKeyboard = {
+        focusManager.clearFocus()
         keyboardController?.hide()
         isShowKeyboard = false
     }
@@ -127,31 +130,6 @@ internal fun AnimatedVisibilityScope.TextInput(
                 modifier = Modifier.padding(start = 6.dp)
             )
         }
-
-//        TextButton(
-//            onClick = {
-//                hideKeyboard()
-////                calculateCodes(text)
-//            },
-//            shape = RoundedCornerShape(mediumCornerSize),
-//            colors = ButtonDefaults.textButtonColors(
-//                containerColor = MaterialTheme.colorScheme.primary.animate(),
-//                contentColor = MaterialTheme.colorScheme.onPrimary.animate()
-//            ),
-//            modifier = Modifier
-//                .padding(horizontal = 8.dp, vertical = 16.dp)
-//                .fillMaxWidth(),
-//            border = BorderStroke(
-//                1.2.dp,
-//                MaterialTheme.colorScheme.onBackground.animate()
-//            ),
-//        ) {
-//            Text(
-//                text = stringResource(R.string.calculate_codes),
-//                fontSize = 16.sp,
-//                textAlign = TextAlign.Center
-//            )
-//        }
     }
 }
 
