@@ -37,13 +37,18 @@ import com.mathematics.encoding.presentation.theme.smallCornerSize
 @Composable
 internal fun CodesList(symbolWithCodes: List<SymbolWithCode>, modifier: Modifier = Modifier) {
     if (symbolWithCodes.isEmpty()) {
-        Text(
-            "Список пуст...",
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onBackground.animate(),
-            modifier = Modifier.fillMaxSize()
-        )
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "Список пуст...",
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onBackground.animate(),
+            )
+        }
         return
     }
 

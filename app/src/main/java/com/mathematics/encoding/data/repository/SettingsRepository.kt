@@ -1,6 +1,5 @@
 package com.mathematics.encoding.data.repository
 
-import android.text.DynamicLayout
 import com.mathematics.encoding.data.room.SettingsDao
 import com.mathematics.encoding.presentation.model.Settings
 import com.mathematics.encoding.presentation.model.Themes
@@ -25,6 +24,10 @@ class SettingsRepository(private val settingsDao: SettingsDao) {
 
     suspend fun updateConsiderGap(considerGap: Boolean) {
         settingsDao.updateConsiderGap(considerGap)
+    }
+
+    suspend fun updateStartCount(startCount: Int) {
+        settingsDao.updateStartCount(startCount)
     }
 
 //    suspend fun updateSettings(settings: Settings) =

@@ -26,10 +26,12 @@ import com.mathematics.encoding.presentation.theme.animate
 import com.mathematics.encoding.presentation.view.mainscreen.MainScreen
 import com.mathematics.encoding.presentation.viewmodel.EncodingViewModel
 import com.mathematics.encoding.presentation.viewmodel.SettingsViewModel
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
+@FlowPreview
 @ExperimentalMaterialApi
 @ExperimentalAnimationApi
 @ExperimentalComposeUiApi

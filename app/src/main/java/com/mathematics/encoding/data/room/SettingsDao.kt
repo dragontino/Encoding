@@ -26,6 +26,9 @@ interface SettingsDao {
     @Query("UPDATE SettingsTable SET considerGap = :considerGap")
     suspend fun updateConsiderGap(considerGap: Boolean)
 
+    @Query("UPDATE SettingsTable SET startCount = :startCount")
+    suspend fun updateStartCount(startCount: Int)
+
     @Update(entity = Settings::class, onConflict = OnConflictStrategy.REPLACE)
     suspend fun updateSettings(settings: Settings)
 

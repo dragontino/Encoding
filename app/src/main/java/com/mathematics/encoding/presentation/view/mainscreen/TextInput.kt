@@ -31,13 +31,13 @@ import com.mathematics.encoding.presentation.theme.mediumCornerSize
 @ExperimentalMaterial3Api
 @Composable
 internal fun AnimatedVisibilityScope.TextInput(
+    text: String,
     considerGap: Boolean,
     updateConsiderGap: (Boolean) -> Unit,
     onTextChange: (String) -> Unit,
     onCheckedChange: (Boolean) -> Unit
 ) {
-    var text by rememberSaveable { mutableStateOf("") }
-    var isShowKeyboard by remember { mutableStateOf(false) }
+    var isShowKeyboard by rememberSaveable { mutableStateOf(false) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -59,10 +59,7 @@ internal fun AnimatedVisibilityScope.TextInput(
     ) {
         OutlinedTextField(
             value = text,
-            onValueChange = {
-                onTextChange(it)
-                text = it
-            },
+            onValueChange = onTextChange,
             placeholder = {
                 Text(
                     "Введите текст...",
@@ -142,12 +139,11 @@ internal fun AnimatedVisibilityScope.TextInput(
 private fun TextInputPreview() {
     AnimatedVisibility(visible = true, modifier = Modifier.background(Color.White)) {
         TextInput(
+            "",
             considerGap = true,
             updateConsiderGap = {},
             onTextChange = {},
             onCheckedChange = {}
-//            onValueChange = {},
-//            calculateCodes = {}
         )
     }
 }

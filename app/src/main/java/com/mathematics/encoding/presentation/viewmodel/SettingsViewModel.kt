@@ -4,9 +4,6 @@ import androidx.lifecycle.*
 import com.mathematics.encoding.data.repository.SettingsRepository
 import com.mathematics.encoding.presentation.model.Settings
 import com.mathematics.encoding.presentation.model.Themes
-import kotlinx.coroutines.flow.FlowCollector
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(private val settingsRepository: SettingsRepository) : ViewModel() {
@@ -63,6 +60,12 @@ class SettingsViewModel(private val settingsRepository: SettingsRepository) : Vi
     fun updateConsiderGap(considerGap: Boolean) {
         viewModelScope.launch {
             settingsRepository.updateConsiderGap(considerGap)
+        }
+    }
+
+    fun updateStartCount(startCount: Int) {
+        viewModelScope.launch {
+            settingsRepository.updateStartCount(startCount)
         }
     }
 }

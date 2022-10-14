@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mathematics.encoding.R
 import com.mathematics.encoding.presentation.model.Symbol
+import com.mathematics.encoding.presentation.model.emptySymbolNameMessage
+import com.mathematics.encoding.presentation.model.incorrectSymbolProbabilityMessage
 import com.mathematics.encoding.presentation.theme.RobotoFont
 import com.mathematics.encoding.presentation.theme.animate
 import com.mathematics.encoding.presentation.view.ConfirmDialog
@@ -48,17 +50,21 @@ import com.mathematics.encoding.presentation.view.ConfirmDialog
 internal fun AnimatedVisibilityScope.SymbolsInput(
     listState: LazyListState,
     symbols: Array<Symbol>,
-    onChangeValue: (value: String) -> Unit,
+    startCount: Int,
+    clearResult: () -> Unit,
     deleteSymbol: (index: Int) -> Unit,
-    addSymbol: () -> Unit
+    addSymbol: () -> Unit,
+    clearSymbol: (index: Int) -> Unit
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
 
     EncodingItems(
         state = listState,
         symbols = symbols,
-        onChangeValue = onChangeValue,
+        startCount = startCount,
+        clearResult = clearResult,
         deleteSymbol = deleteSymbol,
+        clearSymbol = clearSymbol,
         hideKeyboard = { keyboardController?.hide() },
         modifier = Modifier.padding(bottom = 8.dp)
     ) {
@@ -98,10 +104,12 @@ internal fun AnimatedVisibilityScope.SymbolsInput(
 @Composable
 private fun AnimatedVisibilityScope.EncodingItems(
     symbols: Array<Symbol>,
+    startCount: Int,
     modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
-    onChangeValue: (value: String) -> Unit = {},
+    clearResult: () -> Unit = {},
     deleteSymbol: (index: Int) -> Unit = {},
+    clearSymbol: (index: Int) -> Unit = {},
     hideKeyboard: () -> Unit = {},
     itemsAfter: @Composable LazyItemScope.() -> Unit = {}
 ) {
@@ -109,7 +117,7 @@ private fun AnimatedVisibilityScope.EncodingItems(
     var showDialog by remember { mutableStateOf(false) }
 
     fun badNameMessage(name: String, index: Int): String = when {
-        name.isBlank() -> "Пустой символ в строке ${index + 1}"
+        name.isBlank() -> emptySymbolNameMessage(index)
         symbols
             .indexOfFirst { it.name == name }
             .let { it != index && it != -1 } -> "Символ «$name» уже существует!"
@@ -118,7 +126,7 @@ private fun AnimatedVisibilityScope.EncodingItems(
 
     fun badProbabilityMessage(probability: Double, index: Int): String =
         if (probability < 0 || probability > 1)
-            "Некорректная вероятность в строке ${index + 1}"
+            incorrectSymbolProbabilityMessage(index)
         else ""
 
 
@@ -163,7 +171,6 @@ private fun AnimatedVisibilityScope.EncodingItems(
                         .also { symbol.nameError = it }
                         .isNotBlank()
                 },
-                onChangeName = onChangeValue,
                 badProbability = { probabilityString ->
                     with(probabilityString.toDoubleOrNull() ?: -1.0) {
                         badProbabilityMessage(this, index)
@@ -171,23 +178,21 @@ private fun AnimatedVisibilityScope.EncodingItems(
                             .isNotBlank()
                     }
                 },
-                onChangeProbability = {
-                    onChangeValue(it.toString())
-                },
+                onChangeValueWithoutCheck = { clearResult() },
                 modifier = Modifier
                     .combinedClickable(
                         onLongClick = {
-                            // TODO: 13.10.2022 заменить на startCount
-                            if (symbols.size > 2) {
+                            if (symbols.size > startCount) {
                                 hideKeyboard()
                                 indexOfSymbol = index
                                 showDialog = true
                             }
                         },
+                        onDoubleClick = { clearSymbol(index) },
                         onClick = {}
                     )
                     .animateContentSize(spring(stiffness = Spring.StiffnessLow))
-                    .animateItemPlacement(spring(stiffness = Spring.StiffnessLow))
+//                    .animateItemPlacement(spring(stiffness = Spring.StiffnessLow))
             )
         }
 
@@ -205,9 +210,8 @@ private fun AnimatedVisibilityScope.EncodingItem(
     isLast: Boolean,
     modifier: Modifier = Modifier,
     badName: (String) -> Boolean,
-    onChangeName: (String) -> Unit = {},
     badProbability: (String) -> Boolean,
-    onChangeProbability: (Double) -> Unit = {}
+    onChangeValueWithoutCheck: (String) -> Unit = {}
 ) {
 
     val name by symbol.nameLiveData.observeAsState("")
@@ -228,10 +232,10 @@ private fun AnimatedVisibilityScope.EncodingItem(
             placeholderText = stringResource(R.string.symbol),
             onTextChange = {
                 symbol.updateNameWithoutCheck(it)
+                onChangeValueWithoutCheck(it)
                 isErrorName = badName(it)
                 if (!isErrorName) {
                     symbol.name = it
-                    onChangeName(it)
                 }
             },
             modifier = Modifier.animateEnterExit(
@@ -261,10 +265,10 @@ private fun AnimatedVisibilityScope.EncodingItem(
             imeAction = if (isLast) ImeAction.Done else ImeAction.Next,
             onTextChange = {
                 symbol.updateStringProbability(it)
+                onChangeValueWithoutCheck(it)
                 isErrorProbability = badProbability(it)
                 if (!isErrorProbability) {
                     symbol.probability = it.toDouble()
-                    onChangeProbability(it.toDouble())
                 }
             },
             modifier = Modifier.animateEnterExit(
@@ -343,9 +347,11 @@ private fun SymbolsInputPreview() {
                 Symbol("Wrecked", 0.45),
                 Symbol("Imagine Dragons", 0.55)
             ),
-            onChangeValue = {},
+            startCount = 2,
+            clearResult = {},
             deleteSymbol = {},
             addSymbol = {},
+            clearSymbol = {},
             listState = rememberLazyListState()
         )
     }

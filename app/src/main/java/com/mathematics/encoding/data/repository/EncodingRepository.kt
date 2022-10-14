@@ -96,10 +96,8 @@ class EncodingRepository {
             }
 
             val firstPart = sortedList.subList(0, idx)
-//            Log.d("EncodingRepository", "firstList item = ${firstPart[0]}")
             val secondPart = sortedList.subList(idx, sortedList.size)
             val result = ArrayList<SymbolWithCodeBuilder>()
-
 
 
             for ((i, arr) in arrayOf(secondPart, firstPart).withIndex().reversed()) {

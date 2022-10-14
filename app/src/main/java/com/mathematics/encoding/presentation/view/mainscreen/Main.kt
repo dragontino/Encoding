@@ -23,7 +23,6 @@ import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -59,6 +58,7 @@ import kotlinx.coroutines.*
 import kotlin.math.abs
 
 
+@FlowPreview
 @ExperimentalAnimationApi
 @ExperimentalComposeUiApi
 @ExperimentalFoundationApi
@@ -106,7 +106,7 @@ fun MainScreen(
     }
 
 
-    var inputtedText by rememberSaveable { mutableStateOf("") }
+    val inputtedText by encodingViewModel.inputtedText.observeAsState("")
 
     fun showResult() {
         if (settings.autoInputProbabilities) {
@@ -115,7 +115,7 @@ fun MainScreen(
                     showToast(context, "Введите текст!")
                     return
                 }
-                !inputtedText.all { it.isDigit() || it.isLetter() || it in "!.,?!\n " } -> {
+                !inputtedText.all { it.isDigit() || it.isLetter() || it in "!.,?!-–—\n " } -> {
                     showToast(context, "Удалите некорректные символы!")
                     return
                 }
@@ -307,7 +307,9 @@ fun MainScreen(
                                 contentDescription = "add symbol",
                             )
                         },
-                        onClick = { showResult() },
+                        onClick = {
+                            encodingViewModel.onItemClick { showResult() }
+                        },
                         containerColor = MaterialTheme.colorScheme.primary.animate(),
                         contentColor = MaterialTheme.colorScheme.onPrimary.animate(),
                         modifier = Modifier
@@ -366,10 +368,15 @@ fun MainScreen(
                 isAnimationRunning = this.transition.isRunning
 
                 TextInput(
+                    text = inputtedText,
                     considerGap = settings.considerGap,
-                    updateConsiderGap = settingsViewModel::updateConsiderGap,
+                    updateConsiderGap = {
+                        encodingViewModel.onItemClick {
+                            settingsViewModel.updateConsiderGap(it)
+                        }
+                    },
                     onTextChange = { text ->
-                        inputtedText = text
+                        encodingViewModel.inputText(text)
                         resultList = emptyList()
                     },
                     onCheckedChange = {
@@ -390,10 +397,15 @@ fun MainScreen(
                 SymbolsInput(
                     symbols = symbols,
                     listState = lazyListState,
-                    onChangeValue = { resultList = emptyList() },
+                    startCount = settings.startCount,
+                    clearResult = { resultList = emptyList() },
                     addSymbol = {
                         resultList = emptyList()
                         encodingViewModel.addSymbol(Symbol())
+                    },
+                    clearSymbol = {
+                        resultList = emptyList()
+                        encodingViewModel.clearSymbol(it)
                     },
                     deleteSymbol = { index ->
                         if (symbols.size >= settings.startCount) {
@@ -412,6 +424,7 @@ fun MainScreen(
 
 
 
+@FlowPreview
 @ExperimentalMaterialApi
 @ExperimentalAnimationApi
 @ExperimentalComposeUiApi

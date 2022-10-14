@@ -32,6 +32,7 @@ import com.mathematics.encoding.presentation.theme.EncodingAppTheme
 import com.mathematics.encoding.presentation.theme.animate
 import com.mathematics.encoding.presentation.viewmodel.SettingsViewModel
 
+@ExperimentalMaterial3Api
 @ExperimentalMaterialApi
 @ExperimentalAnimationApi
 @Composable
@@ -103,6 +104,43 @@ fun ColumnScope.Settings(settingsViewModel: SettingsViewModel, isSwitchEnabled: 
         enabled = isSwitchEnabled
     )
 
+//    AnimatedVisibility(
+//        visible = !settings.autoInputProbabilities,
+//        enter = scaleIn() + slideInVertically(),
+//        exit = scaleOut() + slideOutVertically()
+//    ) {
+//        Row(
+//            modifier = Modifier
+//                .padding(16.dp)
+//                .fillMaxWidth()
+//        ) {
+//            Text(
+//                text = "Стартовое количество элементов",
+//                style = MaterialTheme.typography.bodyMedium,
+//                color = MaterialTheme.colorScheme.onBackground.animate(),
+//                modifier = Modifier.weight(2f)
+//            )
+//
+//            TextField(
+//                value = settings.startCount.toString(),
+//                onValueChange = {
+//                    settingsViewModel.updateStartCount(it.toIntOrNull() ?: 2)
+//                },
+//                keyboardOptions = KeyboardOptions(
+//                    keyboardType = KeyboardType.Number,
+//                    imeAction = ImeAction.Done
+//                ),
+//                colors = TextFieldDefaults.textFieldColors(
+//                    textColor = MaterialTheme.colorScheme.onBackground.animate(),
+//                    containerColor = Color.Transparent
+//                ),
+//                textStyle = MaterialTheme.typography.bodyMedium,
+//                singleLine = true,
+//                modifier = Modifier.wrapContentWidth()
+//            )
+//        }
+//    }
+
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         SwitchItem(
             text = {
@@ -127,8 +165,6 @@ fun ColumnScope.Settings(settingsViewModel: SettingsViewModel, isSwitchEnabled: 
             }
         )
     }
-
-    // TODO: смена стартового количества элементов
 }
 
 
@@ -191,6 +227,7 @@ private fun SwitchItem(
 
 
 
+@ExperimentalMaterial3Api
 @ExperimentalMaterialApi
 @ExperimentalAnimationApi
 @Preview

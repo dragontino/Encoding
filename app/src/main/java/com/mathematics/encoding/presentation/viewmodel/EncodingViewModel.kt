@@ -4,7 +4,12 @@ import androidx.lifecycle.*
 import com.mathematics.encoding.data.repository.EncodingRepository
 import com.mathematics.encoding.presentation.model.Symbol
 import com.mathematics.encoding.presentation.model.SymbolWithCode
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.launch
 
+@FlowPreview
 class EncodingViewModel(private val encodingRepository: EncodingRepository) : ViewModel() {
     companion object {
         @Volatile
@@ -27,6 +32,25 @@ class EncodingViewModel(private val encodingRepository: EncodingRepository) : Vi
     private val symbolListLiveData: MutableLiveData<Array<Symbol>> = MutableLiveData(emptyArray())
     val symbols: LiveData<Array<Symbol>> = symbolListLiveData
 
+    val inputtedText: MutableLiveData<String> = MutableLiveData("")
+
+    private val debounceOnClick: MutableStateFlow<(() -> Unit)?> = MutableStateFlow(null)
+
+
+    init {
+        viewModelScope.launch {
+            debounceOnClick
+                .debounce(50)
+                .collect {
+                    it?.invoke()
+                }
+        }
+    }
+
+    fun onItemClick(onClick: () -> Unit) {
+        debounceOnClick.value = onClick
+    }
+
 
     fun addSymbol(symbol: Symbol) {
         val array = symbols.value ?: emptyArray()
@@ -40,15 +64,8 @@ class EncodingViewModel(private val encodingRepository: EncodingRepository) : Vi
     }
 
 
-    fun clearSymbols(defaultSize: Int) {
-        val size = symbols.value?.size ?: defaultSize
-        symbolListLiveData.value = Array(size) { Symbol() }
-    }
-
-
-    fun deleteSymbolsFromLast(count: Int = 1) {
-        val array = symbols.value ?: emptyArray()
-        symbolListLiveData.value = array.sliceArray(0..array.lastIndex - count)
+    fun clearSymbol(index: Int) {
+        symbolListLiveData.value = symbols.value?.apply { this[index].clear(index) }
     }
 
 
@@ -59,6 +76,11 @@ class EncodingViewModel(private val encodingRepository: EncodingRepository) : Vi
         symbolListLiveData.value =
             array.sliceArray(0 until index) +
                     array.sliceArray(index + 1 until array.size)
+    }
+
+
+    fun inputText(text: String) {
+        inputtedText.value = text
     }
 
 
