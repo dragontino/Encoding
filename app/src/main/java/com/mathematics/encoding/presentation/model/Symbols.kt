@@ -43,8 +43,8 @@ data class Symbol(
     fun clear(index: Int) {
         name = ""
         probability = -1.0
-        nameError = emptySymbolNameMessage(index)
-        probabilityError = incorrectSymbolProbabilityMessage(index)
+        nameError = emptySymbolNameMessage
+        probabilityError = incorrectSymbolProbabilityMessage
         nameLiveData.value = ""
         probabilityLiveData.value = ""
     }
@@ -60,13 +60,6 @@ data class Symbol(
         else -> this.name.compareTo(other.name)
     }
 }
-
-
-fun emptySymbolNameMessage(index: Int): String =
-    "Пустой символ в строке ${index + 1}"
-
-fun incorrectSymbolProbabilityMessage(index: Int): String =
-    "Некорректная вероятность в строке ${index + 1}"
 
 
 data class SymbolWithCodeBuilder(

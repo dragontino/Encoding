@@ -5,8 +5,8 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.mathematics.encoding.presentation.model.Settings
-import com.mathematics.encoding.presentation.model.Themes
+import com.mathematics.encoding.data.model.Settings
+import com.mathematics.encoding.data.model.Themes
 import kotlinx.coroutines.flow.Flow
 
 @Dao

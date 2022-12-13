@@ -17,8 +17,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.liveData
-import com.mathematics.encoding.presentation.model.Settings
-import com.mathematics.encoding.presentation.model.Themes
+import com.mathematics.encoding.data.model.Settings
+import com.mathematics.encoding.data.model.Themes
 import com.mathematics.encoding.presentation.theme.EncodingAppTheme
 import com.mathematics.encoding.presentation.theme.animate
 

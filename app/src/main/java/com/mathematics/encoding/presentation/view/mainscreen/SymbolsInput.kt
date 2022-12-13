@@ -1,21 +1,23 @@
 package com.mathematics.encoding.presentation.view.mainscreen
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Error
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -26,222 +28,179 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mathematics.encoding.R
-import com.mathematics.encoding.presentation.model.Symbol
-import com.mathematics.encoding.presentation.model.emptySymbolNameMessage
-import com.mathematics.encoding.presentation.model.incorrectSymbolProbabilityMessage
-import com.mathematics.encoding.presentation.theme.RobotoFont
+import com.mathematics.encoding.data.model.Settings
+import com.mathematics.encoding.data.support.smoothScrollToItem
+import com.mathematics.encoding.presentation.model.ObservableSymbol
 import com.mathematics.encoding.presentation.theme.animate
 import com.mathematics.encoding.presentation.view.ConfirmDialog
+import com.mathematics.encoding.presentation.viewmodel.SymbolsViewModel
 
 @ExperimentalMaterial3Api
+@ExperimentalAnimationApi
 @ExperimentalFoundationApi
 @ExperimentalComposeUiApi
 @ExperimentalMaterialApi
-@ExperimentalAnimationApi
 @Composable
 internal fun AnimatedVisibilityScope.SymbolsInput(
+    viewModel: SymbolsViewModel,
+    settings: Settings,
     listState: LazyListState,
-    symbols: Array<Symbol>,
-    startCount: Int,
     clearResult: () -> Unit,
-    deleteSymbol: (index: Int) -> Unit,
-    addSymbol: () -> Unit,
-    clearSymbol: (index: Int) -> Unit
 ) {
+    val symbols = viewModel.symbolsList
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    EncodingItems(
-        state = listState,
-        symbols = symbols,
-        startCount = startCount,
-        clearResult = clearResult,
-        deleteSymbol = deleteSymbol,
-        clearSymbol = clearSymbol,
-        hideKeyboard = { keyboardController?.hide() },
-        modifier = Modifier.padding(bottom = 8.dp)
-    ) {
-        Column {
-            IconButton(
-                onClick = addSymbol,
-                colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = MaterialTheme.colorScheme.onBackground.animate()
-                ),
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(bottom = 8.dp, top = 4.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Add,
-                    contentDescription = "add symbol",
-                    modifier = Modifier
-                        .padding(4.dp)
-                        .scale(1.5f)
-                )
-            }
 
-            Spacer(modifier = Modifier
-                .height(56.dp)
-                .fillMaxWidth())
+    LaunchedEffect(key1 = viewModel.symbolsList.size) {
+        listState.smoothScrollToItem(viewModel.symbolsList.lastIndex)
+    }
+
+    LaunchedEffect(key1 = viewModel.symbolsList.size, key2 = settings.startCount) {
+        if (viewModel.symbolsList.size < settings.startCount) {
+            val countItemsToAdd = settings.startCount - viewModel.symbolsList.size
+            viewModel.symbolsList.addAll(Array(countItemsToAdd) { ObservableSymbol() })
         }
     }
-}
 
 
-@ExperimentalAnimationApi
-@ExperimentalMaterialApi
-@ExperimentalComposeUiApi
-@ExperimentalFoundationApi
-@ExperimentalMaterial3Api
-@Composable
-private fun AnimatedVisibilityScope.EncodingItems(
-    symbols: Array<Symbol>,
-    startCount: Int,
-    modifier: Modifier = Modifier,
-    state: LazyListState = rememberLazyListState(),
-    clearResult: () -> Unit = {},
-    deleteSymbol: (index: Int) -> Unit = {},
-    clearSymbol: (index: Int) -> Unit = {},
-    hideKeyboard: () -> Unit = {},
-    itemsAfter: @Composable LazyItemScope.() -> Unit = {}
-) {
-    var indexOfSymbol by rememberSaveable { mutableStateOf(-1) }
-    var showDialog by remember { mutableStateOf(false) }
-
-    fun badNameMessage(name: String, index: Int): String = when {
-        name.isBlank() -> emptySymbolNameMessage(index)
-        symbols
-            .indexOfFirst { it.name == name }
-            .let { it != index && it != -1 } -> "Символ «$name» уже существует!"
-        else -> ""
-    }
-
-    fun badProbabilityMessage(probability: Double, index: Int): String =
-        if (probability < 0 || probability > 1)
-            incorrectSymbolProbabilityMessage(index)
-        else ""
-
-
-    AnimatedVisibility(
-        visible = showDialog,
-        enter = scaleIn() + fadeIn(),
-        exit = scaleOut() + fadeOut()
-    ) {
+    if (viewModel.showDialog) {
         ConfirmDialog(
             text = buildString {
-                val name = symbols.getOrNull(indexOfSymbol)?.name
+                val name = symbols.getOrNull(viewModel.currentSymbolPosition)?.name
                 val text =
-                    if (name == null || name.isBlank()) "на позиции «${indexOfSymbol + 1}»"
+                    if (name == null || name.isBlank()) "в ${viewModel.currentSymbolPosition + 1} строке"
                     else "«$name»"
 
                 append("Вы собираетесь удалить элемент ")
                 append("$text.")
                 append("\nПродолжить?")
             },
-            closeDialog = { showDialog = false },
+            closeDialog = { viewModel.showDialog = false },
             onConfirm = {
-                showDialog = false
-                deleteSymbol(indexOfSymbol)
+                clearResult()
+                viewModel.symbolsList.removeAt(viewModel.currentSymbolPosition)
             }
         )
     }
 
-
     LazyColumn(
-        state = state,
-        modifier = modifier.fillMaxWidth()
+        state = listState,
+        modifier = Modifier
+            .padding(bottom = 8.dp)
+            .fillMaxWidth()
     ) {
         itemsIndexed(symbols) { index, symbol ->
             EncodingItem(
-                symbol = symbol.apply {
-                    nameError = badNameMessage(name, index)
-                    probabilityError = badProbabilityMessage(probability, index)
-                },
-                isLast = index == symbols.lastIndex,
-                badName = { name ->
-                    badNameMessage(name, index)
-                        .also { symbol.nameError = it }
-                        .isNotBlank()
-                },
-                badProbability = { probabilityString ->
-                    with(probabilityString.toDoubleOrNull() ?: -1.0) {
-                        badProbabilityMessage(this, index)
-                            .also { symbol.probabilityError = it }
-                            .isNotBlank()
-                    }
-                },
-                onChangeValueWithoutCheck = { clearResult() },
+                symbol = symbol,
+                imeAction = if (index == symbols.lastIndex) ImeAction.Done else ImeAction.Next,
                 modifier = Modifier
                     .combinedClickable(
                         onLongClick = {
-                            if (symbols.size > startCount) {
-                                hideKeyboard()
-                                indexOfSymbol = index
-                                showDialog = true
+                            if (symbols.size > settings.startCount) {
+                                keyboardController?.hide()
+                                viewModel.openDialog(index)
                             }
                         },
-                        onDoubleClick = { clearSymbol(index) },
+                        onDoubleClick = { viewModel.symbolsList[index].clear() },
                         onClick = {}
                     )
+                    .animateEnterExit(
+                        enter = slideInVertically(
+                            tween(
+                                durationMillis = 500,
+                                easing = FastOutSlowInEasing,
+                            ),
+                        ) + fadeIn(),
+                        exit = slideOutVertically(
+                            tween(
+                                durationMillis = 500,
+                                easing = FastOutSlowInEasing
+                            )
+                        ) + fadeOut()
+                    )
                     .animateContentSize(spring(stiffness = Spring.StiffnessLow))
-//                    .animateItemPlacement(spring(stiffness = Spring.StiffnessLow))
+                    .animateItemPlacement(tween(durationMillis = 200, easing = FastOutSlowInEasing))
             )
         }
 
-        item(content = itemsAfter)
+        item {
+            Column {
+                IconButton(
+                    onClick = {
+                        clearResult()
+                        viewModel.symbolsList.add(ObservableSymbol())
+                    },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.onBackground.animate()
+                    ),
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(bottom = 8.dp, top = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Add,
+                        contentDescription = "add symbol",
+                        modifier = Modifier
+                            .padding(4.dp)
+                            .scale(1.5f)
+                    )
+                }
+
+                Spacer(modifier = Modifier
+                    .height(56.dp)
+                    .fillMaxWidth())
+            }
+        }
     }
+
 }
 
 
+
+
+
 @ExperimentalAnimationApi
-@ExperimentalComposeUiApi
 @ExperimentalMaterial3Api
 @Composable
 private fun AnimatedVisibilityScope.EncodingItem(
-    symbol: Symbol,
-    isLast: Boolean,
+    symbol: ObservableSymbol,
     modifier: Modifier = Modifier,
-    badName: (String) -> Boolean,
-    badProbability: (String) -> Boolean,
-    onChangeValueWithoutCheck: (String) -> Unit = {}
+    imeAction: ImeAction = ImeAction.Next
 ) {
-
-    val name by symbol.nameLiveData.observeAsState("")
-    val stringProbability by symbol.probabilityLiveData.observeAsState("")
-
-    var isErrorProbability by remember { mutableStateOf(false) }
-    var isErrorName by remember { mutableStateOf(false) }
-
     Row(
-        verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .padding(16.dp)
             .fillMaxWidth(),
     ) {
         OutlinedField(
-            text = name,
-            isError = isErrorName,
+            text = symbol.name,
+            isError = symbol.hasNameError,
             placeholderText = stringResource(R.string.symbol),
-            onTextChange = {
-                symbol.updateNameWithoutCheck(it)
-                onChangeValueWithoutCheck(it)
-                isErrorName = badName(it)
-                if (!isErrorName) {
-                    symbol.name = it
-                }
-            },
+            onTextChange = symbol::name::set,
             modifier = Modifier.animateEnterExit(
-                enter = slideInHorizontally(spring(stiffness = Spring.StiffnessLow)) { it },
-                exit = slideOutHorizontally(spring(stiffness = Spring.StiffnessLow)) { it }
-            )
+                enter = slideInHorizontally(
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        delayMillis = 10,
+                        easing = FastOutSlowInEasing,
+                    ),
+                ) { it },
+                exit = slideOutHorizontally(
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        delayMillis = 10,
+                        easing = LinearOutSlowInEasing,
+                    ),
+                ) { it }
+            ),
+            errorMessage = symbol.nameErrorMessage
         )
 
         Text(
@@ -250,6 +209,7 @@ private fun AnimatedVisibilityScope.EncodingItem(
             fontSize = 20.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier
+                .align(Alignment.CenterVertically)
                 .animateEnterExit(
                     enter = slideInVertically(spring(stiffness = Spring.StiffnessLow)),
                     exit = slideOutVertically(spring(stiffness = Spring.StiffnessLow)) { it }
@@ -258,26 +218,22 @@ private fun AnimatedVisibilityScope.EncodingItem(
         )
 
         OutlinedField(
-            text = stringProbability,
+            text = symbol.probabilityString,
             placeholderText = "Вероятность",
-            isError = isErrorProbability,
+            isError = symbol.hasProbabilityError,
             keyboardType = KeyboardType.Decimal,
-            imeAction = if (isLast) ImeAction.Done else ImeAction.Next,
-            onTextChange = {
-                symbol.updateStringProbability(it)
-                onChangeValueWithoutCheck(it)
-                isErrorProbability = badProbability(it)
-                if (!isErrorProbability) {
-                    symbol.probability = it.toDouble()
-                }
-            },
+            imeAction = imeAction,
+            onTextChange = symbol::probabilityString::set,
             modifier = Modifier.animateEnterExit(
                 enter = slideInHorizontally(spring(stiffness = Spring.StiffnessLow)),
                 exit = slideOutHorizontally(spring(stiffness = Spring.StiffnessLow))
-            )
+            ),
+            errorMessage = symbol.probabilityErrorMessage
         )
     }
 }
+
+
 
 
 @ExperimentalMaterial3Api
@@ -289,9 +245,11 @@ private fun RowScope.OutlinedField(
     isError: Boolean = false,
     keyboardType: KeyboardType = KeyboardType.Text,
     imeAction: ImeAction = ImeAction.Next,
+    errorMessage: String = "",
     onTextChange: (String) -> Unit
 ) {
     val focusManager = LocalFocusManager.current
+    var showSupportingText by rememberSaveable { mutableStateOf(true) }
 
     OutlinedTextField(
         value = text,
@@ -300,10 +258,47 @@ private fun RowScope.OutlinedField(
         },
         placeholder = {
             Text(
-                placeholderText,
-                fontFamily = FontFamily(RobotoFont),
-                fontSize = 16.sp
+                text = placeholderText,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = if (isError) 14.sp else 16.sp
+                ),
+                maxLines = 1
             )
+        },
+        trailingIcon = if (isError) {
+            {
+                IconToggleButton(
+                    checked = showSupportingText,
+                    onCheckedChange = {
+                        showSupportingText = !showSupportingText
+                    },
+                    colors = IconButtonDefaults.iconToggleButtonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.error,
+                        checkedContentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        imageVector = if (showSupportingText) Icons.Rounded.Error else Icons.Rounded.ErrorOutline,
+                        contentDescription = "error"
+                    )
+                }
+            }
+        } else null,
+        supportingText = {
+            AnimatedVisibility(
+                visible = errorMessage.isNotBlank() && showSupportingText,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Text(
+                    text = errorMessage,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 12.sp
+                    )
+                )
+            }
         },
         textStyle = MaterialTheme.typography.bodyMedium,
         singleLine = true,
@@ -328,31 +323,4 @@ private fun RowScope.OutlinedField(
         shape = RoundedCornerShape(10.dp),
         modifier = modifier.weight(1f)
     )
-}
-
-
-
-
-@ExperimentalAnimationApi
-@ExperimentalMaterialApi
-@ExperimentalComposeUiApi
-@ExperimentalFoundationApi
-@ExperimentalMaterial3Api
-@Preview
-@Composable
-private fun SymbolsInputPreview() {
-    AnimatedVisibility(visible = true) {
-        SymbolsInput(
-            symbols = arrayOf(
-                Symbol("Wrecked", 0.45),
-                Symbol("Imagine Dragons", 0.55)
-            ),
-            startCount = 2,
-            clearResult = {},
-            deleteSymbol = {},
-            addSymbol = {},
-            clearSymbol = {},
-            listState = rememberLazyListState()
-        )
-    }
 }

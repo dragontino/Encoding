@@ -16,9 +16,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.LiveData
-import com.mathematics.encoding.presentation.model.Settings
-import com.mathematics.encoding.presentation.model.Themes
-import com.mathematics.encoding.presentation.model.isDark
+import com.mathematics.encoding.data.model.Settings
+import com.mathematics.encoding.data.model.Themes
+import com.mathematics.encoding.data.model.isDark
 
 private val DarkColorScheme = darkColorScheme(
     primary = OrangeDark,
@@ -29,7 +29,7 @@ private val DarkColorScheme = darkColorScheme(
     onBackground = Color.White,
     onPrimary = Color.White,
     primaryContainer = Color(0xFF39393C),
-    error = Color.Red
+    error = Color(0xFFD93232)
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -96,20 +96,6 @@ fun Color.animate(stiffness: Float = Spring.StiffnessMediumLow) =
         animationSpec = spring(stiffness = stiffness)
     ).value
 
-@Deprecated("Use Color.animate() function instead", ReplaceWith("targetColor.animate()"))
-@Composable
-fun animateColor(
-    targetColor: Color,
-    stiffness: Float = Spring.StiffnessMediumLow
-) = animateColorAsState(
-    targetValue = targetColor,
-    animationSpec = spring(stiffness = stiffness)
-).value
-
 
 val mediumCornerSize = 13.dp
 val smallCornerSize = 6.dp
-
-
-//var ColorScheme.checkedThumb: Color by mutableStateOf(CheckedThumbLight)
-//var ColorScheme.uncheckedThumb: Color by mutableStateOf(UncheckedThumbLight)

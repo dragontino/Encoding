@@ -19,6 +19,10 @@ val Typography = Typography(
         fontSize = 16.sp,
         fontFamily = FontFamily(RobotoFont)
     ),
+    bodySmall = TextStyle(
+        fontSize = 13.sp,
+        fontFamily = FontFamily(RobotoFont),
+    ),
     labelLarge = TextStyle(
         fontFamily = FontFamily(RobotoFont),
         fontSize = 24.sp

@@ -26,8 +26,8 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.liveData
 import com.mathematics.encoding.EncodingApplication
 import com.mathematics.encoding.R
-import com.mathematics.encoding.presentation.model.Settings
-import com.mathematics.encoding.presentation.model.Themes
+import com.mathematics.encoding.data.model.Settings
+import com.mathematics.encoding.data.model.Themes
 import com.mathematics.encoding.presentation.theme.EncodingAppTheme
 import com.mathematics.encoding.presentation.theme.animate
 import com.mathematics.encoding.presentation.viewmodel.SettingsViewModel
@@ -238,7 +238,7 @@ private fun SettingsPreview() {
             Settings(
                 settingsViewModel = SettingsViewModel.getInstance(
                     owner = { ViewModelStore() },
-                    factory = EncodingApplication().settingsViewModelFactory,
+                    factory = EncodingApplication().viewModelFactory,
                 ),
             )
         }

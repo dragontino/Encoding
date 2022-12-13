@@ -1,4 +1,4 @@
-package com.mathematics.encoding.presentation.model
+package com.mathematics.encoding.data.model
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.Icons

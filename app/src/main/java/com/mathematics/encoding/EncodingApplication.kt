@@ -1,15 +1,10 @@
 package com.mathematics.encoding
 
 import android.app.Application
-import com.mathematics.encoding.presentation.viewmodel.EncodingViewModelFactory
-import com.mathematics.encoding.presentation.viewmodel.SettingsViewModelFactory
+import com.mathematics.encoding.presentation.viewmodel.ViewModelFactory
 
 class EncodingApplication: Application() {
-    val settingsViewModelFactory: SettingsViewModelFactory by lazy {
-        SettingsViewModelFactory(this)
-    }
-
-    val encodingViewModelFactory: EncodingViewModelFactory by lazy {
-        EncodingViewModelFactory(this)
+    val viewModelFactory: ViewModelFactory by lazy {
+        ViewModelFactory(this)
     }
 }

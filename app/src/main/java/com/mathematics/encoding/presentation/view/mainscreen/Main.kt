@@ -1,9 +1,7 @@
 package com.mathematics.encoding.presentation.view.mainscreen
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -41,8 +39,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.liveData
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mathematics.encoding.EncodingApplication
 import com.mathematics.encoding.R
+import com.mathematics.encoding.data.model.Settings
+import com.mathematics.encoding.data.model.Themes
+import com.mathematics.encoding.data.model.isDark
 import com.mathematics.encoding.data.repository.EncodingRepository
 import com.mathematics.encoding.data.support.*
 import com.mathematics.encoding.presentation.model.*
@@ -54,6 +56,7 @@ import com.mathematics.encoding.presentation.view.Settings
 import com.mathematics.encoding.presentation.view.Themes
 import com.mathematics.encoding.presentation.viewmodel.EncodingViewModel
 import com.mathematics.encoding.presentation.viewmodel.SettingsViewModel
+import com.mathematics.encoding.presentation.viewmodel.SymbolsViewModel
 import kotlinx.coroutines.*
 import kotlin.math.abs
 
@@ -71,15 +74,21 @@ fun MainScreen(
     theme: Themes,
     updateStatusBarColor: (Color) -> Unit = {}
 ) {
-    val symbols by encodingViewModel.symbols.observeAsState(emptyArray())
+    val symbolsViewModel = viewModel<SymbolsViewModel>()
+//    val symbols by encodingViewModel.symbols.observeAsState(emptyArray())
     val settings by settingsViewModel.currentSettings.observeAsState(Settings())
     var resultList by remember { mutableStateOf(listOf<SymbolWithCode>()) }
 
 
     val scope = rememberCoroutineScope { Dispatchers.Default }
     val context = LocalContext.current
-    val sheetState =
-        rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
+    val sheetState = rememberModalBottomSheetState(
+        initialValue = ModalBottomSheetValue.Hidden,
+        animationSpec = tween(
+            durationMillis = 500,
+            easing = FastOutLinearInEasing,
+        ),
+    )
     val lazyListState = rememberLazyListState()
 
     var isLoading by remember { mutableStateOf(false) }
@@ -98,11 +107,11 @@ fun MainScreen(
         sheetContent = {
             BottomSheet(title = title, bottomSheetContent = content)
         }
-        scope.launch { sheetState.open() }
+        scope.launch { sheetState.show() }
     }
 
     val closeBottomSheet = {
-        scope.launch { sheetState.close() }
+        scope.launch { sheetState.hide() }
     }
 
 
@@ -133,20 +142,37 @@ fun MainScreen(
                 }
             }
         } else {
-            val errorSymbol = symbols.find { it.hasError }
+            symbolsViewModel.symbolsList.mapIndexed { index, symbol ->
+                symbol.nameErrorMessage = when {
+                    symbol.name.isBlank() -> emptySymbolNameMessage
+                    symbolsViewModel
+                        .symbolsList
+                        .slice(0 until index)
+                        .find { it.name == symbol.name } != null ->
+                            "Символ «${symbol.name}» уже существует"
+                    else -> ""
+                }
+
+                symbol.probabilityErrorMessage = if (symbol.nullableProbability == null) {
+                    incorrectSymbolProbabilityMessage
+                } else ""
+            }
+            val errorSymbol = symbolsViewModel.symbolsList.find {
+                it.hasError
+            } //symbols.find { it.hasError }
             when {
                 errorSymbol != null -> {
-                    showToast(context, errorSymbol.error)
+                    showToast(context, "Введите корретные данные!")
                     return
                 }
-                abs(symbols.sumProbabilities - 1) > 0.005 -> {
-                    showToast(context, "Сумма вероятностей должна равнятся 1")
+                abs(symbolsViewModel.symbolsList.sumOf { it.probability } - 1) > 0.005 -> {
+                    showToast(context, "Сумма вероятностей должна равняться 1")
                     return
                 }
                 resultList.isEmpty() -> {
                     scope.launch(Dispatchers.Default) {
                         resultList = encodingViewModel
-                            .generateCodesByFano(symbols.toList())
+                            .generateCodesByFano(symbolsViewModel.symbolsList.map { it.toSymbol() })
                     }
                 }
             }
@@ -171,12 +197,6 @@ fun MainScreen(
         isLoading = false
         delay(200)
         awaitCancellation()
-    }
-
-
-    LaunchedEffect(key1 = symbols.size, key2 = settings.startCount) {
-        if (symbols.size < settings.startCount)
-            encodingViewModel.addSymbols(settings.startCount - symbols.size)
     }
 
 
@@ -280,18 +300,18 @@ fun MainScreen(
             },
             floatingActionButton = {
                 AnimatedVisibility(
-                    visible = !lazyListState.isScrollInProgress,
+                    visible = lazyListState.isScrollingUp(),
                     enter = scaleIn(
                         transformOrigin = TransformOrigin(0.5f, 1f),
-                        animationSpec = spring(stiffness = Spring.StiffnessVeryLow)
+                        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
                     ) + slideInVertically(
-                        animationSpec = spring(stiffness = Spring.StiffnessLow)
+                        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
                     ) { it / 2 },
                     exit = scaleOut(
                         transformOrigin = TransformOrigin(0.5f, 1f),
-                        animationSpec = spring(stiffness = Spring.StiffnessMedium)
+                        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
                     ) + slideOutVertically(
-                        animationSpec = spring(stiffness = Spring.StiffnessMedium)
+                        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
                     ) { it / 2 }
                 ) {
                     ExtendedFloatingActionButton(
@@ -338,8 +358,8 @@ fun MainScreen(
 
             AnimatedVisibility(
                 visible = isLoading,
-                enter = fadeIn() + slideInVertically(),
-                exit = fadeOut() + slideOutVertically()
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
             ) {
                 Column(
                     modifier = Modifier
@@ -395,25 +415,32 @@ fun MainScreen(
                 isAnimationRunning = this.transition.isRunning
 
                 SymbolsInput(
-                    symbols = symbols,
+                    viewModel = symbolsViewModel,
+                    settings = settings,
                     listState = lazyListState,
-                    startCount = settings.startCount,
-                    clearResult = { resultList = emptyList() },
-                    addSymbol = {
-                        resultList = emptyList()
-                        encodingViewModel.addSymbol(Symbol())
-                    },
-                    clearSymbol = {
-                        resultList = emptyList()
-                        encodingViewModel.clearSymbol(it)
-                    },
-                    deleteSymbol = { index ->
-                        if (symbols.size >= settings.startCount) {
-                            resultList = emptyList()
-                            encodingViewModel.deleteSymbol(index)
-                        }
-                    }
+                    clearResult = { resultList = emptyList() }
                 )
+
+//                SymbolsInput(
+//                    symbols = symbols,
+//                    listState = lazyListState,
+//                    startCount = settings.startCount,
+//                    clearResult = { resultList = emptyList() },
+//                    addSymbol = {
+//                        resultList = emptyList()
+//                        encodingViewModel.addSymbol(Symbol())
+//                    },
+//                    clearSymbol = {
+//                        resultList = emptyList()
+//                        encodingViewModel.clearSymbol(it)
+//                    },
+//                    deleteSymbol = { index ->
+//                        if (symbols.size >= settings.startCount) {
+//                            resultList = emptyList()
+//                            encodingViewModel.deleteSymbol(index)
+//                        }
+//                    }
+//                )
             }
         }
     }
@@ -437,7 +464,7 @@ private fun DefaultPreview() {
         MainScreen(
             settingsViewModel = SettingsViewModel.getInstance(
                 { ViewModelStore() },
-                EncodingApplication().settingsViewModelFactory
+                EncodingApplication().viewModelFactory
             ),
             encodingViewModel = EncodingViewModel(EncodingRepository()),
             theme = theme

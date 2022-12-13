@@ -9,13 +9,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 
-@FlowPreview
+@Suppress("OPT_IN_IS_NOT_ENABLED")
+@OptIn(FlowPreview::class)
 class EncodingViewModel(private val encodingRepository: EncodingRepository) : ViewModel() {
     companion object {
         @Volatile
         private var INSTANCE: EncodingViewModel? = null
 
-        fun getInstance(owner: ViewModelStoreOwner, factory: EncodingViewModelFactory): EncodingViewModel {
+        fun getInstance(owner: ViewModelStoreOwner, factory: ViewModelFactory): EncodingViewModel {
             val temp = INSTANCE
             if (temp != null)
                 return temp
@@ -29,8 +30,6 @@ class EncodingViewModel(private val encodingRepository: EncodingRepository) : Vi
         }
     }
 
-    private val symbolListLiveData: MutableLiveData<Array<Symbol>> = MutableLiveData(emptyArray())
-    val symbols: LiveData<Array<Symbol>> = symbolListLiveData
 
     val inputtedText: MutableLiveData<String> = MutableLiveData("")
 
@@ -49,33 +48,6 @@ class EncodingViewModel(private val encodingRepository: EncodingRepository) : Vi
 
     fun onItemClick(onClick: () -> Unit) {
         debounceOnClick.value = onClick
-    }
-
-
-    fun addSymbol(symbol: Symbol) {
-        val array = symbols.value ?: emptyArray()
-        symbolListLiveData.value = array + symbol
-    }
-
-
-    fun addSymbols(count: Int) {
-        val oldArray = symbols.value ?: emptyArray()
-        symbolListLiveData.value = oldArray + Array(count) { Symbol() }
-    }
-
-
-    fun clearSymbol(index: Int) {
-        symbolListLiveData.value = symbols.value?.apply { this[index].clear(index) }
-    }
-
-
-    fun deleteSymbol(index: Int) {
-        val array = symbols.value ?: emptyArray()
-        if (index < 0 || index >= array.size) return
-
-        symbolListLiveData.value =
-            array.sliceArray(0 until index) +
-                    array.sliceArray(index + 1 until array.size)
     }
 
 

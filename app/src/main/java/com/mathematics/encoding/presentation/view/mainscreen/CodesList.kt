@@ -26,7 +26,7 @@ import androidx.lifecycle.liveData
 import com.mathematics.encoding.data.support.averageCodeLength
 import com.mathematics.encoding.data.support.entropy
 import com.mathematics.encoding.data.support.round
-import com.mathematics.encoding.presentation.model.Settings
+import com.mathematics.encoding.data.model.Settings
 import com.mathematics.encoding.presentation.model.SymbolWithCode
 import com.mathematics.encoding.presentation.theme.EncodingAppTheme
 import com.mathematics.encoding.presentation.theme.animate

@@ -23,7 +23,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.mathematics.encoding.presentation.model.Themes
+import androidx.lifecycle.liveData
+import com.mathematics.encoding.data.model.Settings
+import com.mathematics.encoding.data.model.Themes
+import com.mathematics.encoding.presentation.theme.EncodingAppTheme
 import com.mathematics.encoding.presentation.theme.animate
 import com.mathematics.encoding.presentation.theme.mediumCornerSize
 
@@ -183,7 +186,9 @@ fun ConfirmDialog(
 @Preview
 @Composable
 private fun ThemeDialogPreview() {
-    ThemeDialog(theme = Themes.Light, onDismiss = {}, updateTheme = {})
+    EncodingAppTheme(settings = liveData { emit(Settings()) }) {
+        ThemeDialog(theme = Themes.Light, onDismiss = {}, updateTheme = {})
+    }
 }
 
 
@@ -192,9 +197,11 @@ private fun ThemeDialogPreview() {
 @Preview
 @Composable
 private fun ConfirmDialogPreview() {
-    ConfirmDialog(
-        text = "Вы собираетевсыдль дцуьсдлывьс ывюсь",
-        closeDialog = {},
-        onConfirm = {}
-    )
+    EncodingAppTheme(settings = liveData { emit(Settings()) }) {
+        ConfirmDialog(
+            text = "Вы собираетевсыдль дцуьсдлывьс ывюсь",
+            closeDialog = {},
+            onConfirm = {}
+        )
+    }
 }

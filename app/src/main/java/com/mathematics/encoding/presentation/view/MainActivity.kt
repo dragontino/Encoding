@@ -30,7 +30,6 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-
 @FlowPreview
 @ExperimentalMaterialApi
 @ExperimentalAnimationApi
@@ -44,12 +43,12 @@ class MainActivity : ComponentActivity() {
 
         val settingsViewModel = SettingsViewModel.getInstance(
             this,
-            (application as EncodingApplication).settingsViewModelFactory
+            (application as EncodingApplication).viewModelFactory
         )
 
         val encodingViewModel = EncodingViewModel.getInstance(
             this,
-            (application as EncodingApplication).encodingViewModelFactory
+            (application as EncodingApplication).viewModelFactory
         )
 
         

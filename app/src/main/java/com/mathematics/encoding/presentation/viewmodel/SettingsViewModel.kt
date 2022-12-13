@@ -2,8 +2,8 @@ package com.mathematics.encoding.presentation.viewmodel
 
 import androidx.lifecycle.*
 import com.mathematics.encoding.data.repository.SettingsRepository
-import com.mathematics.encoding.presentation.model.Settings
-import com.mathematics.encoding.presentation.model.Themes
+import com.mathematics.encoding.data.model.Settings
+import com.mathematics.encoding.data.model.Themes
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(private val settingsRepository: SettingsRepository) : ViewModel() {
@@ -13,7 +13,7 @@ class SettingsViewModel(private val settingsRepository: SettingsRepository) : Vi
 
         fun getInstance(
             owner: ViewModelStoreOwner,
-            factory: SettingsViewModelFactory
+            factory: ViewModelFactory
         ): SettingsViewModel {
             val temp = INSTANCE
             if (temp != null)

@@ -2,15 +2,18 @@ package com.mathematics.encoding.data.support
 
 import android.content.Context
 import android.widget.Toast
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetState
 import androidx.compose.material.ModalBottomSheetValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.ColorUtils
 import com.mathematics.encoding.presentation.model.SymbolWithCode
+import kotlin.math.abs
 import kotlin.math.log2
 
 
@@ -37,23 +40,6 @@ get() = fold(0.0) { sum, element ->
 }
 
 
-@ExperimentalMaterialApi
-suspend fun ModalBottomSheetState.open(stiffness: Float = Spring.StiffnessMediumLow) {
-    animateTo(
-        targetValue = ModalBottomSheetValue.HalfExpanded,
-        anim = spring(stiffness = stiffness)
-    )
-}
-
-
-@ExperimentalMaterialApi
-suspend fun ModalBottomSheetState.close(stiffness: Float = Spring.StiffnessMediumLow) =
-    animateTo(
-        targetValue = ModalBottomSheetValue.Hidden,
-        anim = spring(stiffness = stiffness)
-    )
-
-
 fun showToast(context: Context, text: String, duration: Int = Toast.LENGTH_SHORT) {
     Toast.makeText(context, text, duration).show()
 }
@@ -61,4 +47,37 @@ fun showToast(context: Context, text: String, duration: Int = Toast.LENGTH_SHORT
 
 operator fun Color.plus(other: Color): Color {
     return Color(ColorUtils.blendARGB(this.toArgb(), other.toArgb(), 1f))
+}
+
+@Composable
+fun LazyListState.isScrollingUp(): Boolean {
+    var previousIndex by remember(this) { mutableStateOf(firstVisibleItemIndex) }
+    var previousScrollOffset by remember(this) { mutableStateOf(firstVisibleItemScrollOffset) }
+    return remember(this) {
+        derivedStateOf {
+            if (previousIndex != firstVisibleItemIndex) {
+                previousIndex > firstVisibleItemIndex
+            } else {
+                previousScrollOffset >= firstVisibleItemScrollOffset
+            }.also {
+                previousIndex = firstVisibleItemIndex
+                previousScrollOffset = firstVisibleItemScrollOffset
+            }
+        }
+    }.value
+}
+
+
+suspend fun LazyListState.smoothScrollToItem(targetPosition: Int) {
+    val itemsToScroll = abs(targetPosition - firstVisibleItemScrollOffset)
+    val pixelsToScroll = layoutInfo.visibleItemsInfo[0].size * itemsToScroll
+
+    animateScrollBy(
+        value = pixelsToScroll.toFloat(),
+        animationSpec = tween(
+            durationMillis = 250 * itemsToScroll,
+            delayMillis = 40,
+            easing = FastOutSlowInEasing
+        )
+    )
 }
