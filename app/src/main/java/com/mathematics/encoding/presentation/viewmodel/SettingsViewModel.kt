@@ -1,9 +1,16 @@
 package com.mathematics.encoding.presentation.viewmodel
 
+import android.content.Context
+import android.content.Intent
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.core.net.toUri
 import androidx.lifecycle.*
-import com.mathematics.encoding.data.repository.SettingsRepository
 import com.mathematics.encoding.data.model.Settings
 import com.mathematics.encoding.data.model.Themes
+import com.mathematics.encoding.data.repository.SettingsRepository
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(private val settingsRepository: SettingsRepository) : ViewModel() {
@@ -29,6 +36,32 @@ class SettingsViewModel(private val settingsRepository: SettingsRepository) : Vi
     }
 
     val currentSettings get() = settingsRepository.getSettings().asLiveData()
+
+
+    var showDialog by mutableStateOf(false)
+        private set
+    var dialogContent: @Composable () -> Unit by mutableStateOf({})
+        private set
+
+
+
+    fun openDialog(dialogContent: @Composable () -> Unit) {
+        showDialog = true
+        this.dialogContent = dialogContent
+    }
+
+    fun closeDialog() {
+        showDialog = false
+        this.dialogContent = {}
+    }
+
+
+    fun openURL(context: Context, url: String) {
+        val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+        context.startActivity(intent)
+    }
+
+
 
 
     fun updateSettings(update: Settings.() -> Unit) {

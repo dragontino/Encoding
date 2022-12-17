@@ -1,24 +1,23 @@
 package com.mathematics.encoding.presentation.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
-import androidx.lifecycle.LiveData
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mathematics.encoding.EncodingApplication
 import com.mathematics.encoding.data.model.Settings
 import com.mathematics.encoding.data.model.Themes
 import com.mathematics.encoding.data.model.isDark
+import com.mathematics.encoding.data.support.getActivity
+import com.mathematics.encoding.presentation.viewmodel.SettingsViewModel
 
 private val DarkColorScheme = darkColorScheme(
     primary = OrangeDark,
@@ -45,14 +44,13 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun EncodingAppTheme(
-    settings: LiveData<Settings>,
-    statusBarColor: Color? = MaterialTheme.colorScheme.primary,
-    content: @Composable (theme: Themes) -> Unit
-) {
-    val settingsState = settings.observeAsState(initial = Settings())
-    val dynamicColor = settingsState.value.dynamicColor
-    val isDarkTheme = settingsState.value.theme.isDark()
+fun EncodingAppTheme(content: @Composable (theme: Themes) -> Unit) {
+
+    val application = LocalContext.current.getActivity()?.application as EncodingApplication?
+    val settingsViewModel = viewModel<SettingsViewModel>(factory = application?.viewModelFactory)
+    val settings by settingsViewModel.currentSettings.observeAsState(initial = Settings())
+    val dynamicColor = settings.dynamicColor
+    val isDarkTheme = settings.theme.isDark()
 
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
@@ -66,34 +64,27 @@ fun EncodingAppTheme(
         else -> LightColorScheme
     }
 
-    val statusBarColorArgb = (statusBarColor ?: colorScheme.primary).animate().toArgb()
-
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as Activity).window
-            window.statusBarColor = statusBarColorArgb
-            if (!dynamicColor)
-                WindowCompat.getInsetsController(window, view)
-                    .isAppearanceLightStatusBars = !isDarkTheme
-        }
-    }
+//    val systemUiController = rememberSystemUiController()
+//    systemUiController.setStatusBarColor(
+//        color = colorScheme.primary.animate(),
+//        darkIcons = !isDarkTheme
+//    )
 
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
         content = {
-            content(settingsState.value.theme)
+            content(settings.theme)
         }
     )
 }
 
 
 @Composable
-fun Color.animate(stiffness: Float = Spring.StiffnessMediumLow) =
+fun Color.animate(durationMills: Int = 600) =
     animateColorAsState(
         targetValue = this,
-        animationSpec = spring(stiffness = stiffness)
+        animationSpec = tween(durationMills, easing = FastOutSlowInEasing)
     ).value
 
 

@@ -1,67 +1,48 @@
 package com.mathematics.encoding.presentation.viewmodel
 
-import androidx.lifecycle.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStoreOwner
 import com.mathematics.encoding.data.repository.EncodingRepository
 import com.mathematics.encoding.presentation.model.Symbol
 import com.mathematics.encoding.presentation.model.SymbolWithCode
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.launch
+import com.mathematics.encoding.presentation.view.navigation.TabItems
 
-@Suppress("OPT_IN_IS_NOT_ENABLED")
-@OptIn(FlowPreview::class)
+
 class EncodingViewModel(private val encodingRepository: EncodingRepository) : ViewModel() {
-    companion object {
-        @Volatile
-        private var INSTANCE: EncodingViewModel? = null
 
-        fun getInstance(owner: ViewModelStoreOwner, factory: ViewModelFactory): EncodingViewModel {
-            val temp = INSTANCE
-            if (temp != null)
-                return temp
+    var resultList = listOf<SymbolWithCode>()
+        private set
 
-            synchronized(this) {
-                val instance = ViewModelProvider(owner, factory)[EncodingViewModel::class.java]
-                INSTANCE = instance
+    var isLoading by mutableStateOf(true)
 
-                return instance
-            }
-        }
+    internal var currentTabItem by mutableStateOf(TabItems.SymbolsProbabilities)
+
+    var isAnimationRunning by mutableStateOf(false)
+
+
+    suspend fun calculateCodesByFano(text: String, considerGap: Boolean) {
+        resultList = generateCodesByFano(text, considerGap)
     }
 
-
-    val inputtedText: MutableLiveData<String> = MutableLiveData("")
-
-    private val debounceOnClick: MutableStateFlow<(() -> Unit)?> = MutableStateFlow(null)
-
-
-    init {
-        viewModelScope.launch {
-            debounceOnClick
-                .debounce(50)
-                .collect {
-                    it?.invoke()
-                }
-        }
+    suspend fun calculateCodesByFano(symbols: List<Symbol>) {
+        resultList = generateCodesByFano(symbols)
     }
 
-    fun onItemClick(onClick: () -> Unit) {
-        debounceOnClick.value = onClick
-    }
-
-
-    fun inputText(text: String) {
-        inputtedText.value = text
+    fun clearResult() {
+        resultList = emptyList()
     }
 
 
 
 
-    suspend fun generateCodesByFano(symbols: List<Symbol>): List<SymbolWithCode> =
+    private suspend fun generateCodesByFano(symbols: List<Symbol>): List<SymbolWithCode> =
         encodingRepository.generateCodesByFano(symbols)
 
 
-    suspend fun generateCodesByFano(text: String, considerGap: Boolean): List<SymbolWithCode> =
+    private suspend fun generateCodesByFano(text: String, considerGap: Boolean): List<SymbolWithCode> =
         encodingRepository.generateCodesByFano(text, considerGap)
 }

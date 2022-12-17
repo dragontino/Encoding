@@ -20,6 +20,8 @@ class ViewModelFactory(private val application: Application): ViewModelProvider.
             modelClass.isAssignableFrom(EncodingViewModel::class.java) -> EncodingViewModel(
                 encodingRepository = EncodingRepository()
             ) as T
+            modelClass.isAssignableFrom(SymbolsViewModel::class.java) -> SymbolsViewModel() as T
+            modelClass.isAssignableFrom(TextInputViewModel::class.java) -> TextInputViewModel() as T
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }
     }

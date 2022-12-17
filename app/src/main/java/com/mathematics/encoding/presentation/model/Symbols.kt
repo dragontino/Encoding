@@ -1,7 +1,13 @@
 package com.mathematics.encoding.presentation.model
 
+import android.os.Parcel
+import android.os.Parcelable
 import androidx.lifecycle.MutableLiveData
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import com.google.gson.stream.JsonReader
 import com.mathematics.encoding.data.support.compare
+import java.io.StringReader
 
 internal interface Probability {
     var probability: Double
@@ -83,11 +89,62 @@ data class SymbolWithCodeBuilder(
 
 
 data class SymbolWithCode(
-    val symbolName: String,
-    override var probability: Double,
-    val code: String
-) : Probability {
+    val symbolName: String = "",
+    override var probability: Double = -1.0,
+    val code: String = ""
+) : Probability, Parcelable {
+
+    constructor(parcel: Parcel) : this(
+        symbolName = parcel.readString() ?: "",
+        probability = parcel.readDouble(),
+        code = parcel.readString() ?: "",
+    )
+
     constructor(symbol: Symbol, code: String): this(symbol.name, symbol.probability, code)
+
+    override fun writeToParcel(parcel: Parcel, flags: Int) {
+        parcel.writeString(symbolName)
+        parcel.writeDouble(probability)
+        parcel.writeString(code)
+    }
+
+    override fun describeContents() = 0
+
+    companion object CREATOR : Parcelable.Creator<SymbolWithCode> {
+        override fun createFromParcel(parcel: Parcel): SymbolWithCode {
+            return SymbolWithCode(parcel)
+        }
+
+        override fun newArray(size: Int): Array<SymbolWithCode?> {
+            return arrayOfNulls(size)
+        }
+    }
+}
+
+
+internal fun SymbolWithCode.parseToJson(): String =
+    Gson().toJson(this)
+
+internal fun Collection<SymbolWithCode>.parseToJson(): String =
+    Gson().toJson(this)
+
+internal fun String.parseToSymbolWithCode(): SymbolWithCode =
+    Gson().fromJson(this, SymbolWithCode::class.java)
+
+internal fun String.parseToSymbolWithCodeList(): List<SymbolWithCode> {
+    val type = object : TypeToken<List<SymbolWithCode>>() {}.type
+    val reader = JsonReader(StringReader(this)).apply { isLenient = true }
+    return Gson().fromJson(reader, type)
+}
+
+
+internal fun String.encode(codes: Collection<SymbolWithCode>): String {
+    val result = StringBuilder()
+    this.forEach { char ->
+        val encodedChar = codes.find { it.symbolName == char.uppercase() }?.code
+        result.append(encodedChar ?: "")
+    }
+    return result.toString()
 }
 
 

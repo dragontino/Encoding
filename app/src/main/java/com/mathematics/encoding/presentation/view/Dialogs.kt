@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Palette
@@ -23,15 +25,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.liveData
-import com.mathematics.encoding.data.model.Settings
 import com.mathematics.encoding.data.model.Themes
 import com.mathematics.encoding.presentation.theme.EncodingAppTheme
 import com.mathematics.encoding.presentation.theme.animate
 import com.mathematics.encoding.presentation.theme.mediumCornerSize
 
-
-@ExperimentalMaterialApi
 @Composable
 fun ThemeDialog(
     theme: Themes,
@@ -104,7 +102,7 @@ fun ThemeDialog(
             )
         },
         text = {
-            Column {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
                 Themes(theme, updateTheme)
             }
         },
@@ -186,7 +184,7 @@ fun ConfirmDialog(
 @Preview
 @Composable
 private fun ThemeDialogPreview() {
-    EncodingAppTheme(settings = liveData { emit(Settings()) }) {
+    EncodingAppTheme {
         ThemeDialog(theme = Themes.Light, onDismiss = {}, updateTheme = {})
     }
 }
@@ -197,7 +195,7 @@ private fun ThemeDialogPreview() {
 @Preview
 @Composable
 private fun ConfirmDialogPreview() {
-    EncodingAppTheme(settings = liveData { emit(Settings()) }) {
+    EncodingAppTheme {
         ConfirmDialog(
             text = "Вы собираетевсыдль дцуьсдлывьс ывюсь",
             closeDialog = {},

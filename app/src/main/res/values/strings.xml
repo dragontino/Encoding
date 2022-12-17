@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Кодировка</string>
-    <string name="app_version">Версия приложения: 1.4.3 от 14.12.2022</string>
+    <string name="app_version">Версия приложения: 2.0.0 от 17.12.2022</string>
 
 <!--  Settings  -->
     <string name="auto_input_symbols">Автоввод символов из текста</string>
@@ -8,8 +8,18 @@
 
     <string name="dynamic_color">Использовать динамические цвета</string>
     <string name="dynamic_color_definition">Цветовая палитра приложения автоматически адаптируется и интегрируются с пользовательскими настройками</string>
+    <string name="close">Закрыть</string>
 
 <!--  Main  -->
     <string name="calculate_codes">Вычислить коды</string>
     <string name="symbol">Символ</string>
+
+<!--  Screens  -->
+    <string name="settings">Настройки</string>
+    <string name="result">Результат</string>
+    <string name="text_input">Текст</string>
+    <string name="symbols_probabilities">Вероятности</string>
+    <string name="symbols_frequencies">Частоты</string>
+    <string name="feedback">Связь с разработчиком</string>
+
 </resources>

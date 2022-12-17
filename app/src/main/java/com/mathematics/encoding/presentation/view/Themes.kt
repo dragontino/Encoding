@@ -16,8 +16,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.liveData
-import com.mathematics.encoding.data.model.Settings
 import com.mathematics.encoding.data.model.Themes
 import com.mathematics.encoding.presentation.theme.EncodingAppTheme
 import com.mathematics.encoding.presentation.theme.animate
@@ -79,7 +77,7 @@ private fun ColumnScope.ThemeItem(
 @Preview
 @Composable
 private fun ThemesPreview() {
-    EncodingAppTheme(settings = liveData { emit(Settings()) }) {
+    EncodingAppTheme {
         var theme by remember { mutableStateOf(it) }
 
         Column {
@@ -95,7 +93,7 @@ private fun ThemesPreview() {
 @Preview
 @Composable
 private fun ThemeItemPreview() {
-    EncodingAppTheme(settings = liveData { emit(Settings()) }) {
+    EncodingAppTheme {
         Column {
             ThemeItem(icon = Icons.Rounded.LightMode, text = "Светлая тема", isSelected = false) { }
             ThemeItem(icon = Icons.Rounded.DarkMode, text = "Темная тема", isSelected = true) { }
