@@ -1,12 +1,11 @@
 package com.mathematics.encoding.presentation.view
 
 import android.os.Build
-import androidx.compose.animation.*
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
@@ -60,56 +59,19 @@ internal fun AnimatedVisibilityScope.SettingsScreen(
             IconButton(
                 onClick = {
                     viewModel.openDialog {
-                        AlertDialog(
-                            onDismissRequest = viewModel::closeDialog,
-                            confirmButton = {
-                                TextButton(
-                                    onClick = viewModel::closeDialog,
-                                    colors = ButtonDefaults.textButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.primary.animate()
-                                    )
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.close),
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                }
-                            },
-                            text = {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    FeedbackButton(title = "Telegram") {
-                                        viewModel.openURL(context, "https://t.me/cepetroff")
-                                    }
+                        FeedbackDialog(closeDialog = viewModel::closeDialog) {
+                            FeedbackButton(title = "Telegram") {
+                                viewModel.openURL(context, "https://t.me/cepetroff")
+                            }
 
-                                    FeedbackButton(title = "Вконтакте") {
-                                        viewModel.openURL(context, "https://vk.com/cepetroff")
-                                    }
+                            FeedbackButton(title = "Вконтакте") {
+                                viewModel.openURL(context, "https://vk.com/cepetroff")
+                            }
 
-                                    FeedbackButton(title = "Почта") {
-                                        viewModel.openURL(context, "mailto:petrovsd2002@gmail.com")
-                                    }
-                                }
-                            },
-                            title = {
-                                Text(
-                                    text = stringResource(R.string.feedback),
-                                    style = MaterialTheme.typography.labelLarge
-                                )
-                            },
-                            icon = {
-                                Icon(
-                                    imageVector = Icons.Rounded.ChatBubble,
-                                    contentDescription = "feedback",
-                                    modifier = Modifier.scale(1.3f)
-                                )
-                            },
-                            containerColor = MaterialTheme.colorScheme.background.animate(),
-                            textContentColor = MaterialTheme.colorScheme.onBackground.animate(),
-                            iconContentColor = MaterialTheme.colorScheme.primary.animate(),
-                            titleContentColor = MaterialTheme.colorScheme.onBackground.animate()
-                        )
+                            FeedbackButton(title = "Почта") {
+                                viewModel.openURL(context, "mailto:petrovsd2002@gmail.com")
+                            }
+                        }
                     }
                 },
             ) {
@@ -122,32 +84,6 @@ internal fun AnimatedVisibilityScope.SettingsScreen(
         }
     ) {
         Settings(viewModel)
-    }
-}
-
-
-
-@Composable
-private fun ColumnScope.FeedbackButton(title: String, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        shape = RoundedCornerShape(15.dp),
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.primary.animate()
-        ),
-        colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = MaterialTheme.colorScheme.onBackground.animate()
-        ),
-        modifier = Modifier
-            .align(Alignment.CenterHorizontally)
-            .padding(4.dp)
-            .fillMaxWidth()
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyMedium,
-        )
     }
 }
 

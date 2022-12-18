@@ -10,7 +10,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mathematics.encoding.EncodingApplication
 import com.mathematics.encoding.data.model.Settings
@@ -64,15 +63,10 @@ fun EncodingAppTheme(content: @Composable (theme: Themes) -> Unit) {
         else -> LightColorScheme
     }
 
-//    val systemUiController = rememberSystemUiController()
-//    systemUiController.setStatusBarColor(
-//        color = colorScheme.primary.animate(),
-//        darkIcons = !isDarkTheme
-//    )
-
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = Shapes,
         content = {
             content(settings.theme)
         }
@@ -86,7 +80,3 @@ fun Color.animate(durationMills: Int = 600) =
         targetValue = this,
         animationSpec = tween(durationMills, easing = FastOutSlowInEasing)
     ).value
-
-
-val mediumCornerSize = 13.dp
-val smallCornerSize = 6.dp

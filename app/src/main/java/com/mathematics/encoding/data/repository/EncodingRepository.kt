@@ -1,8 +1,9 @@
 package com.mathematics.encoding.data.repository
 
+import com.mathematics.encoding.data.model.*
+import com.mathematics.encoding.data.model.sumProbabilities
 import com.mathematics.encoding.data.support.countSigns
 import com.mathematics.encoding.data.support.round
-import com.mathematics.encoding.presentation.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
@@ -10,24 +11,27 @@ import kotlin.math.abs
 
 class EncodingRepository {
 
-    suspend fun generateCodesByFano(text: String, considerGap: Boolean): List<SymbolWithCode> {
+    suspend fun generateCodesByFano(text: String, considerGap: Boolean): List<CodedSymbol> {
         val symbols = calculateProbabilities(text, considerGap)
         return when {
             symbols.isEmpty() -> emptyList()
-            symbols.size == 1 -> listOf(SymbolWithCode(symbols[0], "1"))
+            symbols.size == 1 -> listOf(symbols[0].attachCode("1"))
             else -> generateCodesByFano(symbols)
         }
     }
 
 
-    suspend fun generateCodesByFano(symbols: List<Symbol>): List<SymbolWithCode> {
-        val hashMap = HashMap<Symbol, StringBuilder>()
-        symbols.forEach { symbol ->
-            symbol.name = symbol.name.uppercase()
-            if (symbol.probability != 0.0)
-                hashMap[symbol] = StringBuilder()
-        }
-        return createCodesByFano(hashMap).map { it.build() }
+    suspend fun generateCodesByFano(symbols: List<Symbol>): List<CodedSymbol> {
+        return createCodesByFano(
+            codedSymbols = symbols
+                .filter { it.probability != 0.0 }
+                .map {
+                    CodedSymbol(
+                        name = it.name.uppercase(),
+                        probability = it.probability
+                    )
+                }.toSet()
+        )
     }
 
 
@@ -57,60 +61,70 @@ class EncodingRepository {
 
 
 
-    private suspend fun createCodesByFano(symbolsMap: HashMap<Symbol, StringBuilder>): List<SymbolWithCodeBuilder> {
-        val sumProbabilities = symbolsMap.keys.sumProbabilities
+    private suspend fun createCodesByFano(codedSymbols: Set<CodedSymbol>): List<CodedSymbol> {
+        val sumProbabilities = codedSymbols.sumProbabilities
 
         fun f(x: Double): Double =
             abs(2 * x - sumProbabilities)
 
 
-        if (symbolsMap.size == 1) {
-            return symbolsMap.toSymbolBuilderList()
-        }
+        val sortedList = codedSymbols.sortedByDescending { it.detachCode() }
 
-        val sortedList = symbolsMap.keys.sorted()
-
-        if (symbolsMap.size == 2) {
-            sortedList.asReversed().forEachIndexed { index, symbol ->
-                symbolsMap.getOrDefault(symbol, StringBuilder()).append(index)
-            }
-            return symbolsMap.toSymbolBuilderList().sortedByDescending { it }
-        }
-
-        return supervisorScope {
-            var sum = 0.0
-            var idx = 0
-
-            while (idx < sortedList.size / 2) {
-                val currentProbability = sortedList[idx].probability
-                if (f(sum + currentProbability) < f(sum))
-                    sum += currentProbability
-                else
-                    break
-
-                idx++
-            }
-
-            if (sortedList.size % 4 != 0 && sortedList.size % 2 == 0 && idx == sortedList.size / 2) {
-                idx--
-            }
-
-            val firstPart = sortedList.subList(0, idx)
-            val secondPart = sortedList.subList(idx, sortedList.size)
-            val result = ArrayList<SymbolWithCodeBuilder>()
-
-
-            for ((i, arr) in arrayOf(secondPart, firstPart).withIndex().reversed()) {
-                arr.forEach { symbolsMap.getOrDefault(it, StringBuilder()).append(i) }
-
-                result += withContext(Dispatchers.Default) {
-                    createCodesByFano(arr.associateWith { symbolsMap[it] ?: StringBuilder() }
-                            as HashMap<Symbol, StringBuilder>)
+        return when (sortedList.size) {
+            1 -> codedSymbols.toList()
+            2 -> {
+                sortedList.forEachIndexed { index, codedSymbol ->
+                    codedSymbol.attachToCode(1 - index)
                 }
+                sortedList
             }
+            else -> supervisorScope {
+                var sum = 0.0
+                var idx = 0
 
-//            result.sortDescending()
-            return@supervisorScope result
+                while (idx < sortedList.size / 2) {
+                    val currentProbability = sortedList[idx].probability
+                    if (f(sum + currentProbability) < f(sum))
+                        sum += currentProbability
+                    else
+                        break
+
+                    idx++
+                }
+
+                if (
+                    sortedList.size % 4 != 0
+                    && sortedList.size % 2 == 0
+                    && idx == sortedList.size / 2
+                ) {
+                    idx--
+                }
+
+                val firstPart = sortedList.subList(0, idx)
+                val secondPart = sortedList.subList(idx, sortedList.size)
+                val result = mutableListOf<CodedSymbol>()
+
+                arrayOf(firstPart, secondPart).forEachIndexed { index, arr ->
+                    arr.forEach { symbol ->
+                        symbol.attachToCode(1 - index)
+                    }
+
+                    result += withContext(Dispatchers.Default) {
+                        createCodesByFano(arr.toSet())
+                    }
+                }
+//            for ((i, arr) in arrayOf(secondPart, firstPart).withIndex().reversed()) {
+//                arr.forEach { symbol ->
+//                    codedSymbols.find { it == symbol }?.attachToCode(i)
+//                }
+//
+//                result += withContext(Dispatchers.Default) {
+//                    createCodesByFano(arr)
+//                }
+//            }
+
+                return@supervisorScope result
+            }
         }
     }
 }

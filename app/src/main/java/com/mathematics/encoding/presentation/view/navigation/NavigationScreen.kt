@@ -22,9 +22,9 @@ import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.mathematics.encoding.EncodingApplication
+import com.mathematics.encoding.data.model.parseToCodedSymbolList
 import com.mathematics.encoding.data.support.*
 import com.mathematics.encoding.data.support.Loading
-import com.mathematics.encoding.presentation.model.parseToSymbolWithCodeList
 import com.mathematics.encoding.presentation.theme.EncodingAppTheme
 import com.mathematics.encoding.presentation.theme.animate
 import com.mathematics.encoding.presentation.view.SettingsScreen
@@ -40,7 +40,7 @@ import kotlinx.coroutines.delay
 
 
 const val SettingsResultDelay = 200
-const val SettingsResultDuration = 600
+const val SettingsResultDuration = 500
 
 
 @ExperimentalPagerApi
@@ -83,7 +83,7 @@ internal fun NavigationScreen(application: EncodingApplication) {
             color = when {
                 whiteStatusBar -> MaterialTheme.colorScheme.background
                 else -> MaterialTheme.colorScheme.primary
-            }.animate()
+            }.animate(durationMills = 800)
         )
 
 
@@ -101,20 +101,21 @@ internal fun NavigationScreen(application: EncodingApplication) {
             composable(
                 route = EncodingScreens.Main.routeWithArgs,
                 enterTransition = {
-                    fadeIn(tween(durationMillis = 350, easing = LinearEasing))
+                    fadeIn(tween(durationMillis = 400, easing = LinearEasing))
                 },
                 exitTransition = {
-                    fadeOut(tween(durationMillis = 350, easing = LinearEasing))
+                    fadeOut(tween(durationMillis = 400, easing = LinearEasing))
                 }
             ) {
                 whiteStatusBar = false
 
                 MainScreen(
-                    encodingViewModel,
-                    settingsViewModel,
-                    symbolsViewModel,
-                    textInputViewModel,
-                    navigateTo
+                    title = stringResource(EncodingScreens.Main.title),
+                    encodingViewModel = encodingViewModel,
+                    settingsViewModel = settingsViewModel,
+                    symbolsViewModel = symbolsViewModel,
+                    textInputViewModel = textInputViewModel,
+                    navigateTo = navigateTo
                 )
             }
 
@@ -252,7 +253,7 @@ internal fun NavigationScreen(application: EncodingApplication) {
                         key = EncodingScreens.Result.Arguments.resultList,
                         defaultValue = ""
                     )
-                    .parseToSymbolWithCodeList()
+                    .parseToCodedSymbolList()
 
                 val defaultMessage = it.arguments
                     ?.getString(EncodingScreens.Result.Arguments.defaultMessage)

@@ -3,7 +3,6 @@ package com.mathematics.encoding.presentation.view.screens
 import android.content.res.Configuration
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -27,6 +26,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -36,18 +36,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.pager.ExperimentalPagerApi
-import com.google.accompanist.pager.rememberPagerState
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.mathematics.encoding.R
 import com.mathematics.encoding.data.model.Settings
+import com.mathematics.encoding.data.model.encode
 import com.mathematics.encoding.data.model.isDark
-import com.mathematics.encoding.data.support.*
+import com.mathematics.encoding.data.support.Loading
+import com.mathematics.encoding.data.support.isScrollingUp
+import com.mathematics.encoding.data.support.loadingTimeMillis
+import com.mathematics.encoding.data.support.mainScreenTabsAnimationSpec
 import com.mathematics.encoding.presentation.model.ObservableSymbol
-import com.mathematics.encoding.presentation.model.emptySymbolNameMessage
-import com.mathematics.encoding.presentation.model.encode
-import com.mathematics.encoding.presentation.model.incorrectSymbolProbabilityMessage
 import com.mathematics.encoding.presentation.theme.animate
-import com.mathematics.encoding.presentation.theme.mediumCornerSize
+import com.mathematics.encoding.presentation.theme.removeBottomCorners
 import com.mathematics.encoding.presentation.view.navigation.EncodingScreens
 import com.mathematics.encoding.presentation.view.navigation.TabIconComposable
 import com.mathematics.encoding.presentation.view.navigation.TabItems
@@ -57,7 +57,6 @@ import com.mathematics.encoding.presentation.viewmodel.SettingsViewModel
 import com.mathematics.encoding.presentation.viewmodel.SymbolsViewModel
 import com.mathematics.encoding.presentation.viewmodel.TextInputViewModel
 import kotlinx.coroutines.*
-import kotlin.math.abs
 
 @ExperimentalPagerApi
 @ExperimentalAnimationApi
@@ -71,6 +70,7 @@ fun MainScreen(
     settingsViewModel: SettingsViewModel,
     symbolsViewModel: SymbolsViewModel,
     textInputViewModel: TextInputViewModel,
+    title: String,
     navigateTo: (route: String) -> Unit
 ) {
     val settings by settingsViewModel.currentSettings.observeAsState(Settings())
@@ -88,7 +88,7 @@ fun MainScreen(
     val context = LocalContext.current
 
     val lazyListState = rememberLazyListState()
-    val pagerState = rememberPagerState(initialPage = TabItems.values().size)
+//    val pagerState = rememberPagerState(initialPage = TabItems.values().size)
     val systemUiController = rememberSystemUiController()
 
     systemUiController.setStatusBarColor(
@@ -101,30 +101,19 @@ fun MainScreen(
     val interactionSource = remember { MutableInteractionSource() }
     val focusManager = LocalFocusManager.current
 
+
     fun showResult() {
         if (settings.autoInputProbabilities) {
-            val inputtedText = textInputViewModel.text
+
             when {
-                inputtedText.isEmpty() || (inputtedText.isBlank() && !settings.considerGap) -> {
-                    showToast(context, "Введите текст!")
-                    return
-                }
-                !inputtedText.all { it.isDigit() || it.isLetter() || it in "!.,?!-–—\n " } -> {
-                    showToast(context, "Удалите некорректные символы!")
-                    return
-                }
-                !inputtedText.any {
-                    it.isDigit() || it.isLetter() || (settings.considerGap && it == ' ')
-                } -> {
-                    showToast(context, "Введите корректные символы!")
-                    return
-                }
+                !textInputViewModel.checkInputText(context) -> return
+
                 encodingViewModel.resultList.isEmpty() -> {
                     scope.launch(Dispatchers.Default) {
-                        encodingViewModel.isLoading = true
-                        encodingViewModel.calculateCodesByFano(inputtedText, settings.considerGap)
-                        delay(100)
-                        encodingViewModel.isLoading = false
+                        encodingViewModel.calculateCodesByFano(
+                            text = textInputViewModel.text,
+                            considerGap = settings.considerGap
+                        )
 
                         withContext(Dispatchers.Main) {
                             navigateTo(
@@ -137,6 +126,7 @@ fun MainScreen(
                         }
                     }
                 }
+
                 else -> {
                     // TODO: 17.12.2022 переделать
                     navigateTo(
@@ -149,41 +139,14 @@ fun MainScreen(
                 }
             }
         } else {
-            symbolsViewModel.symbolsList.mapIndexed { index, symbol ->
-                symbol.nameErrorMessage = when {
-                    symbol.name.isBlank() -> emptySymbolNameMessage
-                    symbolsViewModel
-                        .symbolsList
-                        .slice(0 until index)
-                        .find { it.name == symbol.name } != null ->
-                            "Символ «${symbol.name}» уже существует"
-                    else -> ""
-                }
-
-                symbol.probabilityErrorMessage = if (symbol.nullableProbability == null) {
-                    incorrectSymbolProbabilityMessage
-                } else ""
-            }
-
-            val errorSymbol = symbolsViewModel.symbolsList.find { it.hasError }
-
             when {
-                errorSymbol != null -> {
-                    showToast(context, "Введите корретные данные!")
-                    return
-                }
-                abs(symbolsViewModel.symbolsList.sumOf { it.probability } - 1) > 0.005 -> {
-                    showToast(context, "Сумма вероятностей должна равняться 1")
-                    return
-                }
+                !symbolsViewModel.checkSymbolsInput(context) -> return
+
                 encodingViewModel.resultList.isEmpty() -> {
                     scope.launch(Dispatchers.Default) {
-                        encodingViewModel.isLoading = true
                         encodingViewModel.calculateCodesByFano(
                             symbols = symbolsViewModel.symbolsList.map { it.toSymbol() }
                         )
-                        delay(100)
-                        encodingViewModel.isLoading = false
 
                         withContext(Dispatchers.Main) {
                             navigateTo(
@@ -192,6 +155,7 @@ fun MainScreen(
                         }
                     }
                 }
+
                 else -> {
                     // TODO: 17.12.2022 переделать
                     navigateTo(
@@ -200,8 +164,6 @@ fun MainScreen(
                 }
             }
         }
-
-//        openBottomSheet { CodesList(encodingViewModel.resultList) }
     }
 
 
@@ -215,6 +177,33 @@ fun MainScreen(
 
 
     Scaffold(
+        topBar = {
+            MainTopAppBar(
+                title = title,
+                actionButton = {
+                    AnimatedVisibility(
+                        visible = !settings.autoInputProbabilities,
+                        enter = fadeIn(mainScreenTabsAnimationSpec()),
+                        exit = fadeOut(mainScreenTabsAnimationSpec())
+                    ) {
+                        IconButton(
+                            onClick = {
+                                encodingViewModel.clearResult()
+                                symbolsViewModel.symbolsList.add(ObservableSymbol())
+                            },
+                            modifier = Modifier.padding(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Add,
+                                contentDescription = "add symbol",
+                                modifier = Modifier.scale(1.3f)
+                            )
+                        }
+                    }
+                },
+                navigateTo = navigateTo
+            )
+        },
         floatingActionButton = {
             AnimatedVisibility(
                 visible = lazyListState.isScrollingUp(),
@@ -283,35 +272,15 @@ fun MainScreen(
 
         Column(
             modifier = Modifier
-                .background(MaterialTheme.colorScheme.primary.animate())
+                .background(
+                    brush = Brush.verticalGradient(
+                        0.3f to MaterialTheme.colorScheme.primary.animate(),
+                        0.75f to MaterialTheme.colorScheme.background.animate(),
+                    )
+                )
                 .padding(contentPadding)
                 .fillMaxSize()
         ) {
-            MainTopAppBar(
-                actionButton = {
-                    AnimatedVisibility(
-                        visible = !settings.autoInputProbabilities,
-                        enter = fadeIn(mainScreenTabsAnimationSpec()),
-                        exit = fadeOut(mainScreenTabsAnimationSpec())
-                    ) {
-                        IconButton(
-                            onClick = {
-                                encodingViewModel.clearResult()
-                                symbolsViewModel.symbolsList.add(ObservableSymbol())
-                            },
-                            modifier = Modifier.padding(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Add,
-                                contentDescription = "add symbol",
-                                modifier = Modifier.scale(1.3f)
-                            )
-                        }
-                    }
-                },
-                navigateTo = navigateTo
-            )
-
 
             // TODO: 15.12.2022 доделать tabs
 
@@ -391,30 +360,29 @@ fun MainScreen(
             Box(
                 contentAlignment = Alignment.TopCenter,
                 modifier = Modifier
-                    .padding(start = 3.dp, end = 4.dp)
+                    .padding(start = 3.dp, end = 4.dp, bottom = 4.dp)
                     .clip(
-                        shape = RoundedCornerShape(mediumCornerSize),
+                        shape = MaterialTheme.shapes.medium.removeBottomCorners(),
                     )
                     .background(
                         color = MaterialTheme.colorScheme.background.animate(),
-                        shape = RoundedCornerShape(
-                            topStart = mediumCornerSize,
-                            topEnd = mediumCornerSize,
-                        ),
+                        shape = MaterialTheme.shapes.medium.removeBottomCorners(),
                     )
                     .fillMaxSize()
             ) {
                 androidx.compose.animation.AnimatedVisibility(
                     visible = encodingViewModel.currentTabItem == TabItems.TextInput,
-                    enter = slideInHorizontally(mainScreenTabsAnimationSpec()) +
-                            fadeIn(
-                                tween(
-                                    durationMillis = 150,
-                                    easing = LinearEasing
-                                )
-                            ),
-                    exit = slideOutHorizontally(mainScreenTabsAnimationSpec()) { it },
-                    modifier = Modifier.fillMaxHeight()
+                    enter = slideInHorizontally(
+                        animationSpec = mainScreenTabsAnimationSpec()
+                    ) + fadeIn(
+                        animationSpec = mainScreenTabsAnimationSpec()
+                    ),
+                    exit = slideOutHorizontally(
+                        animationSpec = mainScreenTabsAnimationSpec()
+                    ) + fadeOut(
+                        animationSpec = mainScreenTabsAnimationSpec()
+                    ),
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     encodingViewModel.isAnimationRunning = this.transition.isRunning
 
@@ -428,14 +396,16 @@ fun MainScreen(
 
                 androidx.compose.animation.AnimatedVisibility(
                     visible = !settings.autoInputProbabilities,
-                    enter = slideInHorizontally(mainScreenTabsAnimationSpec()) +
-                            fadeIn(
-                                tween(
-                                    durationMillis = 150,
-                                    easing = LinearEasing
-                                )
-                            ),
-                    exit = slideOutHorizontally(mainScreenTabsAnimationSpec()) { it },
+                    enter = slideInHorizontally(
+                        animationSpec = mainScreenTabsAnimationSpec()
+                    ) { it / 2 } + fadeIn(
+                        animationSpec = mainScreenTabsAnimationSpec()
+                    ),
+                    exit = slideOutHorizontally(
+                        animationSpec = mainScreenTabsAnimationSpec()
+                    ) { it / 2 } + fadeOut(
+                        animationSpec = mainScreenTabsAnimationSpec()
+                    ),
                     modifier = Modifier.fillMaxHeight()
                 ) {
                     encodingViewModel.isAnimationRunning = this.transition.isRunning
@@ -457,6 +427,7 @@ fun MainScreen(
 @ExperimentalMaterial3Api
 @Composable
 private fun MainTopAppBar(
+    title: String,
     navigateTo: (route: String) -> Unit,
     actionButton: @Composable () -> Unit,
 ) {
@@ -466,7 +437,7 @@ private fun MainTopAppBar(
         CenterAlignedTopAppBar(
             title = {
                 Text(
-                    stringResource(R.string.app_name),
+                    text = title,
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),

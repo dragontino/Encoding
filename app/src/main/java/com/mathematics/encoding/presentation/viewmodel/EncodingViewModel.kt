@@ -4,17 +4,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelStoreOwner
+import com.mathematics.encoding.data.model.CodedSymbol
+import com.mathematics.encoding.data.model.Symbol
 import com.mathematics.encoding.data.repository.EncodingRepository
-import com.mathematics.encoding.presentation.model.Symbol
-import com.mathematics.encoding.presentation.model.SymbolWithCode
 import com.mathematics.encoding.presentation.view.navigation.TabItems
+import kotlinx.coroutines.delay
 
 
 class EncodingViewModel(private val encodingRepository: EncodingRepository) : ViewModel() {
 
-    var resultList = listOf<SymbolWithCode>()
+    var resultList = listOf<CodedSymbol>()
         private set
 
     var isLoading by mutableStateOf(true)
@@ -25,24 +24,30 @@ class EncodingViewModel(private val encodingRepository: EncodingRepository) : Vi
 
 
     suspend fun calculateCodesByFano(text: String, considerGap: Boolean) {
+        isLoading = true
         resultList = generateCodesByFano(text, considerGap)
+        delay(100)
+        isLoading = false
     }
 
     suspend fun calculateCodesByFano(symbols: List<Symbol>) {
+        isLoading = true
         resultList = generateCodesByFano(symbols)
+        delay(100)
+        isLoading = false
     }
 
     fun clearResult() {
-        resultList = emptyList()
+        if (resultList.isNotEmpty()) resultList = emptyList()
     }
 
 
 
 
-    private suspend fun generateCodesByFano(symbols: List<Symbol>): List<SymbolWithCode> =
+    private suspend fun generateCodesByFano(symbols: List<Symbol>) =
         encodingRepository.generateCodesByFano(symbols)
 
 
-    private suspend fun generateCodesByFano(text: String, considerGap: Boolean): List<SymbolWithCode> =
+    private suspend fun generateCodesByFano(text: String, considerGap: Boolean) =
         encodingRepository.generateCodesByFano(text, considerGap)
 }

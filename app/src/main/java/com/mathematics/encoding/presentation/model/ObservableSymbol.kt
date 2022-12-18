@@ -3,6 +3,7 @@ package com.mathematics.encoding.presentation.model
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.mathematics.encoding.data.model.Symbol
 
 class ObservableSymbol(
     name: String = "",
@@ -38,7 +39,7 @@ class ObservableSymbol(
     }
 
 
-    fun toSymbol() = Symbol(this.name, probability)
+    fun toSymbol() = Symbol(name, probability)
 }
 
 

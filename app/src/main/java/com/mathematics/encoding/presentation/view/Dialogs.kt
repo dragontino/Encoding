@@ -1,34 +1,31 @@
 package com.mathematics.encoding.presentation.view
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ChatBubble
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.mathematics.encoding.R
 import com.mathematics.encoding.data.model.Themes
 import com.mathematics.encoding.presentation.theme.EncodingAppTheme
 import com.mathematics.encoding.presentation.theme.animate
-import com.mathematics.encoding.presentation.theme.mediumCornerSize
 
 @Composable
 fun ThemeDialog(
@@ -106,12 +103,12 @@ fun ThemeDialog(
                 Themes(theme, updateTheme)
             }
         },
-        shape = RoundedCornerShape(mediumCornerSize),
+        shape = MaterialTheme.shapes.medium,
         modifier = Modifier
             .border(
                 width = 1.2.dp,
                 color = MaterialTheme.colorScheme.primary.animate(),
-                shape = RoundedCornerShape(mediumCornerSize),
+                shape = MaterialTheme.shapes.medium,
             ),
         containerColor = MaterialTheme.colorScheme.background.animate(),
         textContentColor = MaterialTheme.colorScheme.onBackground.animate(),
@@ -175,6 +172,81 @@ fun ConfirmDialog(
         textContentColor = MaterialTheme.colorScheme.onBackground.animate(),
         titleContentColor = MaterialTheme.colorScheme.onBackground.animate()
     )
+}
+
+
+
+@Composable
+fun FeedbackDialog(
+    closeDialog: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = closeDialog,
+        confirmButton = {
+            TextButton(
+                onClick = closeDialog,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary.animate()
+                )
+            ) {
+                Text(
+                    text = stringResource(R.string.close),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        },
+        text = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
+                content()
+            }
+        },
+        title = {
+            Text(
+                text = stringResource(R.string.feedback),
+                style = MaterialTheme.typography.labelLarge
+            )
+        },
+        icon = {
+            Icon(
+                imageVector = Icons.Rounded.ChatBubble,
+                contentDescription = "feedback",
+                modifier = Modifier.scale(1.3f)
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background.animate(),
+        textContentColor = MaterialTheme.colorScheme.onBackground.animate(),
+        iconContentColor = MaterialTheme.colorScheme.primary.animate(),
+        titleContentColor = MaterialTheme.colorScheme.onBackground.animate()
+    )
+}
+
+
+@Composable
+internal fun ColumnScope.FeedbackButton(title: String, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(15.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.primary.animate()
+        ),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = MaterialTheme.colorScheme.onBackground.animate()
+        ),
+        modifier = Modifier
+            .align(Alignment.CenterHorizontally)
+            .padding(4.dp)
+            .fillMaxWidth()
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
 }
 
 

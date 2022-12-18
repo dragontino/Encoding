@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Кодировка</string>
-    <string name="app_version">Версия приложения: 2.0.0 от 17.12.2022</string>
+    <string name="app_version">Версия приложения: 2.1.0 от 19.12.2022</string>
 
 <!--  Settings  -->
     <string name="auto_input_symbols">Автоввод символов из текста</string>
@@ -13,6 +13,18 @@
 <!--  Main  -->
     <string name="calculate_codes">Вычислить коды</string>
     <string name="symbol">Символ</string>
+    <string name="entropy">Энтропия</string>
+    <string name="average_code_length">Средняя длина кода</string>
+
+<!--  TextInput  -->
+    <string name="need_text">Введите текст!</string>
+    <string name="remove_incorrect_symbols">Удалите некорректные символы!</string>
+    <string name="get_correct_symbols">Введите корректные символы!</string>
+
+<!--  SymbolsInput  -->
+    <string name="symbol_is_existing">Символ «%1$s» уже существует</string>
+    <string name="need_good_data">Введите корректные данные!</string>
+    <string name="sum_probabilities_needs_to_equals_1">Сумма вероятностей должна равняться 1</string>
 
 <!--  Screens  -->
     <string name="settings">Настройки</string>
@@ -21,5 +33,6 @@
     <string name="symbols_probabilities">Вероятности</string>
     <string name="symbols_frequencies">Частоты</string>
     <string name="feedback">Связь с разработчиком</string>
-
+    <string name="default_msg">Заданный текст</string>
+    <string name="encoded_msg">Закодированный текст</string>
 </resources>

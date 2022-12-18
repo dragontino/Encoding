@@ -26,7 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.ColorUtils
-import com.mathematics.encoding.presentation.model.SymbolWithCode
+import com.mathematics.encoding.data.model.CodedSymbol
 import com.mathematics.encoding.presentation.theme.animate
 import kotlin.math.abs
 import kotlin.math.log2
@@ -35,11 +35,11 @@ import kotlin.math.log2
 const val loadingTimeMillis = 450L
 
 
-val List<SymbolWithCode>.averageCodeLength: Double
+val List<CodedSymbol>.averageCodeLength: Double
 get() = sumOf { it.code.length * it.probability }
 
 
-val List<SymbolWithCode>.entropy: Double
+val List<CodedSymbol>.entropy: Double
 get() = fold(0.0) { sum, element ->
     sum - element.probability * log2(element.probability)
 }

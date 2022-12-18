@@ -1,10 +1,14 @@
 package com.mathematics.encoding.presentation.view.screens
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -29,7 +33,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mathematics.encoding.R
@@ -37,7 +40,6 @@ import com.mathematics.encoding.data.model.Settings
 import com.mathematics.encoding.data.support.mainScreenTabsAnimationSpec
 import com.mathematics.encoding.data.support.smoothScrollToItem
 import com.mathematics.encoding.presentation.model.ObservableSymbol
-import com.mathematics.encoding.presentation.theme.EncodingAppTheme
 import com.mathematics.encoding.presentation.theme.animate
 import com.mathematics.encoding.presentation.view.ConfirmDialog
 import com.mathematics.encoding.presentation.viewmodel.SymbolsViewModel
@@ -98,6 +100,7 @@ internal fun AnimatedVisibilityScope.SymbolsProbabilityScreen(
         itemsIndexed(symbols) { index, symbol ->
             EncodingItem(
                 symbol = symbol,
+                clearResult = clearResult,
                 imeAction = if (index == symbols.lastIndex) ImeAction.Done else ImeAction.Next,
                 modifier = Modifier
                     .combinedClickable(
@@ -130,38 +133,7 @@ internal fun AnimatedVisibilityScope.SymbolsProbabilityScreen(
                     .animateItemPlacement(tween(durationMillis = 200, easing = LinearEasing))
             )
         }
-
-//        item {
-//            Column {
-//                IconButton(
-//                    onClick = {
-//                        clearResult()
-//                        viewModel.symbolsList.add(ObservableSymbol())
-//                    },
-//                    colors = IconButtonDefaults.iconButtonColors(
-//                        containerColor = Color.Transparent,
-//                        contentColor = MaterialTheme.colorScheme.onBackground.animate()
-//                    ),
-//                    modifier = Modifier
-//                        .align(Alignment.CenterHorizontally)
-//                        .padding(bottom = 8.dp, top = 4.dp)
-//                ) {
-//                    Icon(
-//                        imageVector = Icons.Rounded.Add,
-//                        contentDescription = "add symbol",
-//                        modifier = Modifier
-//                            .padding(4.dp)
-//                            .scale(1.5f)
-//                    )
-//                }
-//
-//                Spacer(modifier = Modifier
-//                    .height(56.dp)
-//                    .fillMaxWidth())
-//            }
-//        }
     }
-
 }
 
 
@@ -173,6 +145,7 @@ internal fun AnimatedVisibilityScope.SymbolsProbabilityScreen(
 @Composable
 private fun AnimatedVisibilityScope.EncodingItem(
     symbol: ObservableSymbol,
+    clearResult: () -> Unit,
     modifier: Modifier = Modifier,
     imeAction: ImeAction = ImeAction.Next
 ) {
@@ -185,7 +158,10 @@ private fun AnimatedVisibilityScope.EncodingItem(
             text = symbol.name,
             isError = symbol.hasNameError,
             placeholderText = stringResource(R.string.symbol),
-            onTextChange = symbol::name::set,
+            onTextChange = {
+                symbol.name = it
+                clearResult()
+            },
             modifier = Modifier.animateEnterExit(
                 enter = slideInHorizontally(mainScreenTabsAnimationSpec()) { it },
                 exit = slideOutHorizontally(mainScreenTabsAnimationSpec()) { it }
@@ -213,7 +189,10 @@ private fun AnimatedVisibilityScope.EncodingItem(
             isError = symbol.hasProbabilityError,
             keyboardType = KeyboardType.Decimal,
             imeAction = imeAction,
-            onTextChange = symbol::probabilityString::set,
+            onTextChange = {
+                symbol.probabilityString = it
+                clearResult()
+            },
             modifier = Modifier.animateEnterExit(
                 enter = slideInHorizontally(mainScreenTabsAnimationSpec()),
                 exit = slideOutHorizontally(mainScreenTabsAnimationSpec())
@@ -243,9 +222,7 @@ private fun RowScope.OutlinedField(
 
     OutlinedTextField(
         value = text,
-        onValueChange = {
-            onTextChange(it)
-        },
+        onValueChange = onTextChange,
         placeholder = {
             Text(
                 text = placeholderText,
@@ -313,23 +290,4 @@ private fun RowScope.OutlinedField(
         shape = RoundedCornerShape(10.dp),
         modifier = modifier.weight(1f)
     )
-}
-
-
-
-@ExperimentalMaterial3Api
-@ExperimentalAnimationApi
-@Preview
-@Composable
-private fun SymbolsScreenPreview() {
-    EncodingAppTheme {
-        AnimatedVisibility(visible = true) {
-            EncodingItem(
-                symbol = ObservableSymbol(
-                    name = "Imagine Dragons",
-                    probabilityString = "0.45",
-                ),
-            )
-        }
-    }
 }

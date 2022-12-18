@@ -3,8 +3,8 @@ package com.mathematics.encoding.presentation.view.navigation
 import android.util.Log
 import androidx.annotation.StringRes
 import com.mathematics.encoding.R
-import com.mathematics.encoding.presentation.model.SymbolWithCode
-import com.mathematics.encoding.presentation.model.parseToJson
+import com.mathematics.encoding.data.model.CodedSymbol
+import com.mathematics.encoding.data.model.parseToJson
 import com.mathematics.encoding.presentation.view.navigation.EncodingScreens.Result.Arguments
 
 sealed class EncodingScreens(@StringRes val title: Int, val route: String) {
@@ -34,7 +34,7 @@ sealed class EncodingScreens(@StringRes val title: Int, val route: String) {
 
 
 internal fun createRouteToResultScreen(
-    resultList: List<SymbolWithCode>,
+    resultList: List<CodedSymbol>,
     defaultMessage: String = "",
     encodedMessage: String = "",
 ): String {
